@@ -107,14 +107,13 @@ class Endpoint(EndpointSession):
         else:
             self.path_params = path_params_dict
 
-    def set_params(self, params: dict, reset_path_params: bool=True) -> None:
+    def set_params(self, params: dict) -> None:
         '''
         Replace Endpoint 'params' with new parameters.
         This method overwrites default parameters defined at Endpoint instantiation,
         '''
         self.params = params
-        if reset_path_params:
-            self._set_path_params()
+        self._set_path_params()
     
     def set_body(self, body: dict) -> None:
         '''
@@ -122,14 +121,13 @@ class Endpoint(EndpointSession):
         '''
         self.body = body
     
-    def merge_params(self, params: dict, reset_path_params: bool=True) -> None:
+    def merge_params(self, params: dict) -> None:
         '''
         Merge Endpoint 'params' with new parameters.
         This method replaces existing parameter values with new ones, and preserves the rest.
         '''
         self.params = _merge_setting(params, self.params)
-        if reset_path_params:
-            self._set_path_params()
+        self._set_path_params()
 
     def merge_headers(self, headers: dict) -> None:
         '''
@@ -142,15 +140,23 @@ class Endpoint(EndpointSession):
     def request(
             self,
             params: Optional[dict] = None,
-            path_params: Optional[dict] = None,
             body: Optional[dict] = None,
             headers: Optional[dict] = None,
             files: Optional[dict] = None,
             timeout: Optional[int] = None,
             stream: Optional[bool] = None
     ) -> Response:
-        path_params = path_params or {}
-        path_params = _merge_setting(path_params, self.path_params)
+        if params:
+            # Retrieve path parameters passed explicitly in the request
+            path_params = {param: value for param, value in params.items() if param in self.path_params}
+            # And remove them from the parameters
+            for param in path_params:
+                params.pop(param)
+            # Merge with default path parameters, if any
+            path_params = _merge_setting(path_params, self.path_params)
+        else:
+            path_params = self.path_params
+        # Format endpoint
         endpoint = self.endpoint.format(**path_params)
         resp = super().request(
             endpoint=endpoint,
