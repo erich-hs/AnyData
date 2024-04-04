@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anydata"
-version = "0.0.1"
+version = "0.1.0"
 description = "Smart framework to interact with and fetch data from REST APIs."
 authors = ["Erich Silva <erich@esilva.io>"]
 license = "Apache 2.0"
