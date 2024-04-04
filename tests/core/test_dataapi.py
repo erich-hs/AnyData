@@ -1,5 +1,5 @@
 import pytest
-from hub.core.dataapi import DataAPI
+from anydata import DataAPI
 
 sample_openapi = """
 {
@@ -348,14 +348,9 @@ def test_set_and_propagate_shared_params(data_api: DataAPI) -> None:
         },
         propagate=True
     )
-    assert (
-    data_api['pokemon/{name}'].params == {
-            "limit": 10,
-            "offset": 0
-        }
-    and
-    data_api['pokemon/{name}'].params == data_api['pokemon/{name}/encounters'].params
-    )
+    assert data_api['pokemon/{name}'].params == {"limit": 10, "offset": 0}
+    assert data_api['pokemon/{name}'].params == data_api['pokemon/{name}/encounters'].params
+    assert data_api.shared_params == {"limit": 10, "offset": 0}
 
 def test_set_and_propagate_shared_headers(data_api: DataAPI) -> None:
     data_api.add_endpoint(
@@ -373,14 +368,61 @@ def test_set_and_propagate_shared_headers(data_api: DataAPI) -> None:
         },
         propagate=True
     )
-    assert (
-    all(
+    assert all(
         ["Content-Type" in data_api['pokemon/{name}'].headers.keys(),
         "User-Agent" in data_api['pokemon/{name}'].headers.keys()]
     )
-    and
-    data_api['pokemon/{name}'].headers == data_api['pokemon/{name}/encounters'].headers
+    assert data_api['pokemon/{name}'].headers == data_api['pokemon/{name}/encounters'].headers
+
+def test_merge_shared_params(data_api: DataAPI) -> None:
+    data_api.add_endpoint(
+        endpoint="pokemon/{name}",
+        method="GET",
+        params={"limit": 5}
     )
+    data_api.add_endpoint(
+        endpoint="pokemon/{name}/encounters",
+        method="GET",
+        params={"limit": 5}
+    )
+    data_api.set_shared_params(
+        params={"offset": 0},
+        propagate=True
+    )
+    assert data_api['pokemon/{name}'].params == {"limit": 5, "offset": 0}
+    assert data_api['pokemon/{name}'].params == data_api['pokemon/{name}/encounters'].params
+    assert data_api.shared_params == {"offset": 0}
+
+def test_merge_shared_path_params(data_api: DataAPI) -> None:
+    data_api.add_endpoint(
+        endpoint="pokemon/{name}/{another_path_param}",
+        method="GET",
+        params={"name": "pikachu", "another_path_param": "another_value"}
+    )
+    data_api.add_endpoint(
+        endpoint="pokemon/{name}/{another_path_param}/encounters",
+        method="GET",
+    )
+    data_api.set_shared_params(
+        params={"name": "bulbasaur"},
+        propagate=True
+    )
+    assert data_api["pokemon/{name}/{another_path_param}"].path_params == {"name": "bulbasaur", "another_path_param": "another_value"}
+    assert data_api["pokemon/{name}/{another_path_param}/encounters"].path_params == {"name": "bulbasaur", "another_path_param": None}
+    assert data_api.shared_params == {"name": "bulbasaur"}
+
+def test_persisted_shared_params(data_api: DataAPI) -> None:
+    data_api.set_shared_params({"name": "pikachu", "limit": 10})
+    data_api.add_endpoint(
+        endpoint="pokemon/{name}/",
+        method="GET",
+    )
+    assert data_api.shared_params == {"name": "pikachu", "limit": 10}
+    data_api.add_endpoint(
+        endpoint="pokemon/{name}/encounters",
+        method="GET",
+    )
+    assert data_api.shared_params == {"name": "pikachu", "limit": 10}
 
 def test_instantiate_from_openapir() -> None:
     data_api = DataAPI.from_openapi(sample_openapi)

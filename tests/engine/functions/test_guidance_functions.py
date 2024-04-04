@@ -1,6 +1,6 @@
 import pytest
-from hub.engine.functions import relative_url_from_openapi, rest_api_operation_from_openapi, rest_api_parameters_from_openapi, dataapi_from_prompt
-from hub.parsers.openapi import instantiate_openapi
+from anydata.engine.functions import relative_url_from_openapi, rest_api_operation_from_openapi, rest_api_parameters_from_openapi, dataapi_from_prompt
+from anydata.parsers.openapi import instantiate_openapi
 from guidance.models import MockChat
 
 sample_openapi = '''

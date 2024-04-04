@@ -1,6 +1,6 @@
 import os
 import pytest
-from hub.parsers.openapi import *
+from anydata.parsers.openapi import *
 
 @pytest.fixture
 def sample_swagger() -> str:

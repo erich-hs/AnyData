@@ -1,5 +1,6 @@
 import re
 import json
+import copy
 import inspect
 from typing import Optional, Union, List, Tuple
 from dataclasses import dataclass
@@ -71,7 +72,7 @@ class DataAPI(ABCDataAPI):
         self.shared_params = params
         if propagate:
             for endpoint in self.endpoints():
-                self[endpoint[0]].merge_params(params)
+                self[endpoint[0]].merge_params(copy.deepcopy(params))
     
     def set_shared_headers(self, headers: dict, propagate: bool=True) -> None:
         '''
@@ -82,7 +83,7 @@ class DataAPI(ABCDataAPI):
         self.shared_headers = headers
         if propagate:
             for endpoint in self.endpoints():
-                self[endpoint[0]].merge_headers(headers)
+                self[endpoint[0]].merge_headers(copy.deepcopy(headers))
 
     def endpoints(self) -> List[Tuple[str, Endpoint]]:
         return inspect.getmembers(self, lambda a: isinstance(a, Endpoint))
@@ -123,10 +124,10 @@ class DataAPI(ABCDataAPI):
         )
         # Merge explicit parameters with shared parameters
         if params and self.shared_params:
-            endpoint_object.merge_params(self.shared_params)
+            endpoint_object.merge_params(copy.deepcopy(self.shared_params))
         # Merge explicit headers with shared headers
         if headers and self.shared_headers:
-            endpoint_object.merge_headers(self.shared_headers)
+            endpoint_object.merge_headers(copy.deepcopy(self.shared_headers))
         # Attach endpoint to DataAPI
         if alias:
             super().__setitem__(alias, endpoint_object)
@@ -163,7 +164,7 @@ class DataAPI(ABCDataAPI):
                 raise_unsuccessful=False
             )
             if self.shared_params:
-                test_endpoint.merge_params(self.shared_params)
+                test_endpoint.merge_params(copy.deepcopy(self.shared_params))
             test_response = test_endpoint.request()
             print(f"Test request to the endpoint '{stateless_lm['endpoint']}' returned status code {test_response.status_code}.")
             if test_response.status_code != 200:

@@ -1,5 +1,5 @@
 import pytest
-from hub.engine.prompts.user_prompts import relative_url_user_prompt, rest_api_operation_user_prompt, rest_api_parameters_user_prompt
+from anydata.engine.prompts.user_prompts import relative_url_user_prompt, rest_api_operation_user_prompt, rest_api_parameters_user_prompt
 
 @pytest.fixture
 def sample_prompt():

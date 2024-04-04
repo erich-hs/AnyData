@@ -72,7 +72,7 @@ def rest_api_operation_from_openapi(lm: guidance.models.Model,
     Returns a guidance lm model carrying a REST API operation for the endpoint at the 'method' variable.
     '''
     if not endpoint:
-        assert lm['endpoint'], "If 'endpoint' is not provided, it must be captured at the 'endpoint' variable in the lm model."
+        assert 'endpoint' in lm, "If 'endpoint' is not provided, it must be captured at the 'endpoint' variable in the lm model."
         endpoint = lm['endpoint']
     # endpoint_summary = yaml.dump(openapi.paths_summary()[endpoint])
     endpoint_summary = openapi.paths_summary()[endpoint]
@@ -97,10 +97,10 @@ def rest_api_parameters_from_openapi(lm: guidance.models.Model,
     Returns a guidance lm model carrying a JSON object with key value pairs for the parameters needed to call the endpoint.
     '''
     if not endpoint:
-        assert lm['endpoint'], "If 'endpoint' is not provided, it must be captured at the 'endpoint' variable in the lm model."
+        assert 'endpoint' in lm, "If 'endpoint' is not provided, it must be captured at the 'endpoint' variable in the lm model."
         endpoint = lm['endpoint']
     if not method:
-        assert lm['method'], "If 'method' is not provided, it must be captured at the 'method' variable in the lm model."
+        assert 'method' in lm, "If 'method' is not provided, it must be captured at the 'method' variable in the lm model."
         method = lm['method']
     # method_openapi = yaml.dump(openapi.paths_summary(resolve_parameter_references=True)[endpoint][method])
     method_openapi = openapi.paths_summary(resolve_parameter_references=True)[endpoint][method]
@@ -124,13 +124,13 @@ def evaluate_unsuccessful_response(lm: guidance.models.Model,
     Evaluates the response from a REST API call and raises an error if the response is unsuccessful.
     '''
     if not endpoint:
-        assert lm['endpoint'], "If 'endpoint' is not provided, it must be captured at the 'endpoint' variable in the lm model."
+        assert 'endpoint' in lm, "If 'endpoint' is not provided, it must be captured at the 'endpoint' variable in the lm model."
         endpoint = lm['endpoint']
     if not method:
-        assert lm['method'], "If 'method' is not provided, it must be captured at the 'method' variable in the lm model."
+        assert 'method' in lm, "If 'method' is not provided, it must be captured at the 'method' variable in the lm model."
         method = lm['method']
     if not parameters:
-        assert lm['parameters'], "If 'parameters' is not provided, it must be captured at the 'parameters' variable in the lm model."
+        assert 'parameters' in lm, "If 'parameters' is not provided, it must be captured at the 'parameters' variable in the lm model."
         parameters = lm['parameters']
     with system():
         lm += '''

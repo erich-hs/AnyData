@@ -2,7 +2,7 @@ import pytest
 import json
 import requests
 import pandas as pd
-from hub.parsers.response_parser import json_response_to_pandas, dataframe_from_array_of_dicts
+from anydata.parsers.response_parser import json_response_to_pandas, dataframe_from_array_of_dicts
 
 class MockResponse(requests.models.Response):
     def __init__(self, response_text: str):

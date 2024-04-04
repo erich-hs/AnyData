@@ -1,3 +1,4 @@
+import copy
 from typing import Optional
 from requests.sessions import Session
 from collections.abc import MutableMapping
@@ -70,7 +71,7 @@ class EndpointSession(Session):
         # Override defaults from Session.__init__()
         # Update default headers with user defined headers
         self.headers = merge_setting(headers, self.headers)
-        self.params = params
+        self.params = copy.deepcopy(params)
         self.auth = auth
         self.stream = stream
         self.verify = verify

@@ -20,12 +20,13 @@ def _merge_setting(new_setting: dict, base_setting: Optional[dict]=None) -> dict
     assert isinstance(new_setting, Mapping), f"New setting to be merged must be a valid mapping. 'new_setting' provided is of type {type(new_setting)}."
     if base_setting:
         assert isinstance(base_setting, Mapping), f"Base setting to be merged must be a valid mapping. 'base_setting' provided is of type {type(base_setting)}."
-        new_setting = copy.deepcopy(new_setting)
+        merged_setting = copy.deepcopy(new_setting)
         try:
             for key, value in base_setting.items():
-                new_setting.setdefault(key, value)
+                merged_setting.setdefault(key, value)
         except AttributeError:
             pass
+        return merged_setting
     return new_setting
 
 class Endpoint(EndpointSession):
@@ -86,26 +87,38 @@ class Endpoint(EndpointSession):
 
     def _set_path_params(self) -> dict:
         '''
-        Sets path parameters from the endpoint URL as a dictionary with parameter names as values.
-        If self.params is defined, attempts to assign path parameters values from self.params, deleting them from self.params.
-        If self.params is not defined, returns None for each path parameter found in the endpoint relative URL.
-        Will match any string between curly braces {} at the endpoint relative URL.
+        Extract path parameters from the endpoint and store them in self.path_params.
+        To obtain path parameters values this method takes self.params as the first precedence, and self.path_params as the second.
+        It will also remove path parameters from self.params if they are found in the endpoint.
+        Example:
+            endpoint = "/users/{user_id}/posts/{post_id}"
+            endpoint.params = {"user_id": 2, "post_id": None, "format": "json"}
+            endpoint.path_params = {"user_id": 1, "post_id": 1}
+            endpoint._set_path_params()
+        Will result in:
+            endpoint.params = {"format": "json"}
+            endpoint.path_params = {"user_id": 2, "post_id": 1}
         '''
-        path_params = re.findall(r'\{([^{}]+)\}', self.endpoint)
-        if self.params:
-            path_params_dict = {}
-            for parameter in path_params:
-                try:
-                    path_params_dict[parameter] = self.params[parameter]
-                    self.params.pop(parameter)
-                except KeyError:
-                    path_params_dict[parameter] = None
-        else:
-            path_params_dict = {param: None for param in path_params}
+        # List all path parameters in the endpoint
+        path_params_list = re.findall(r'\{([^{}]+)\}', self.endpoint)
+        # Initialize path parameters dictionary
+        path_params = {param: None for param in path_params_list}
+        # Merge with current self.path_params, if any
         if hasattr(self, 'path_params'):
-            self.path_params = _merge_setting(path_params_dict, self.path_params)
-        else:
-            self.path_params = path_params_dict
+            path_params = _merge_setting(self.path_params, path_params)
+        # Merge with current self.params, if any
+        if self.params:
+            path_params = _merge_setting(self.params, path_params)
+        # Trim to only path parameters
+        path_params = {param: path_params[param] for param in path_params_list}
+        # Remove path parameters from self.params, if any
+        if self.params:
+            for param in path_params:
+                try:
+                    self.params.pop(param)
+                except KeyError:
+                    pass
+        self.path_params = path_params
 
     def set_params(self, params: dict) -> None:
         '''
@@ -149,7 +162,7 @@ class Endpoint(EndpointSession):
         if params:
             # Retrieve path parameters passed explicitly in the request
             path_params = {param: value for param, value in params.items() if param in self.path_params}
-            # And remove them from the parameters
+            # And remove them from explicitly passed parameters
             for param in path_params:
                 params.pop(param)
             # Merge with default path parameters, if any

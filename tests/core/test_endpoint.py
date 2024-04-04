@@ -1,6 +1,5 @@
 import pytest
-import pandas as pd
-from hub.core.endpoint import Endpoint
+from anydata import Endpoint
 
 @pytest.fixture
 def valid_endpoint():
