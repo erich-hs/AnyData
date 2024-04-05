@@ -1,6 +1,12 @@
+import json
 import os
 import pytest
-from anydata.parsers.openapi import *
+from anydata.parsers.openapi import (
+    OpenAPI,
+    openapi_dict_from_json_file,
+    instantiate_openapi,
+)
+
 
 @pytest.fixture
 def sample_swagger() -> str:
@@ -252,83 +258,144 @@ def sample_swagger() -> str:
 }
 """
 
+
 @pytest.fixture
 def openapi(sample_swagger: str) -> OpenAPI:
     return OpenAPI.from_json(sample_swagger)
 
+
 def test_openapi_from_dict_without_info(sample_swagger: str):
     openapi_dict = json.loads(sample_swagger)
-    del openapi_dict['info']
+    del openapi_dict["info"]
     openapi = OpenAPI(openapi_dict)
     assert openapi.info is not None
 
+
 def test_openapi_dict_from_json_file(tmpdir, sample_swagger: str):
     swagger = tmpdir.mkdir("tmp").join("swagger.json")
-    with open(swagger, 'w') as f:
+    with open(swagger, "w") as f:
         f.write(sample_swagger)
-    assert openapi_dict_from_json_file(os.path.abspath(swagger)) == json.loads(sample_swagger)
+    assert openapi_dict_from_json_file(os.path.abspath(swagger)) == json.loads(
+        sample_swagger
+    )
+
 
 def test_instantiate_openapi_from_str(sample_swagger: str):
     assert isinstance(instantiate_openapi(sample_swagger), OpenAPI)
 
+
 def test_instantiate_openapi_from_file(tmpdir, sample_swagger: str):
     swagger = tmpdir.mkdir("tmp").join("swagger.json")
-    with open(swagger, 'w') as f:
+    with open(swagger, "w") as f:
         f.write(sample_swagger)
     assert isinstance(instantiate_openapi(os.path.abspath(swagger)), OpenAPI)
 
+
 def test_instantiate_openapi_from_dict(sample_swagger: str):
     assert isinstance(instantiate_openapi(json.loads(sample_swagger)), OpenAPI)
+
 
 def test_failed_instantiate_openapi_from_str():
     with pytest.raises(ValueError):
         instantiate_openapi("{invalid_json}")
 
+
 def test_openapi_to_dict(openapi: OpenAPI):
     dict_openapi = openapi.to_dict()
     assert isinstance(dict_openapi, dict)
-    assert all([key in dict_openapi for key in ['info', 'servers', 'paths']])
-    assert all([key in dict_openapi['info'] for key in ['version', 'title', 'description', 'termsOfService', 'contact', 'license']])
-    assert dict_openapi['servers'][0] == {'url': 'https://petstore.swagger.io/v2'}
-    assert all([key in dict_openapi['paths'] for key in ['/pets', '/pets/{id}']])
-    assert all([key in dict_openapi['paths']['/pets'] for key in ['get', 'post']])
-    assert all([key in dict_openapi['paths']['/pets']['get'] for key in ['tags', 'summary', 'description', 'externalDocs', 'operationId', 'parameters', 'requestBody', 'responses', 'deprecated']])
+    assert all([key in dict_openapi for key in ["info", "servers", "paths"]])
+    assert all(
+        [
+            key in dict_openapi["info"]
+            for key in [
+                "version",
+                "title",
+                "description",
+                "termsOfService",
+                "contact",
+                "license",
+            ]
+        ]
+    )
+    assert dict_openapi["servers"][0] == {"url": "https://petstore.swagger.io/v2"}
+    assert all([key in dict_openapi["paths"] for key in ["/pets", "/pets/{id}"]])
+    assert all([key in dict_openapi["paths"]["/pets"] for key in ["get", "post"]])
+    assert all(
+        [
+            key in dict_openapi["paths"]["/pets"]["get"]
+            for key in [
+                "tags",
+                "summary",
+                "description",
+                "externalDocs",
+                "operationId",
+                "parameters",
+                "requestBody",
+                "responses",
+                "deprecated",
+            ]
+        ]
+    )
+
 
 def test_info_summary_default_excluded_properties(openapi: OpenAPI):
     assert openapi.info_summary() == {
-        'title': 'Swagger Petstore',
-        'description': 'A sample API that uses a petstore as an example to demonstrate features in the OpenAPI 3.0 specification'
+        "title": "Swagger Petstore",
+        "description": "A sample API that uses a petstore as an example to demonstrate features in the OpenAPI 3.0 specification",
     }
+
 
 def test_info_summary_custom_excluded_properties(openapi: OpenAPI):
-    assert openapi.info_summary(excluded_info_properties=['title', 'description']) == {'termsOfService': 'http://swagger.io/terms/',
-        'contact': {'name': 'Swagger API Team',
-        'url': 'http://swagger.io',
-        'email': 'apiteam@swagger.io'},
-        'license': {'name': 'Apache 2.0',
-        'identifier': None,
-        'url': 'https://www.apache.org/licenses/LICENSE-2.0.html'},
-        'version': '1.0.0'
+    assert openapi.info_summary(excluded_info_properties=["title", "description"]) == {
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Swagger API Team",
+            "url": "http://swagger.io",
+            "email": "apiteam@swagger.io",
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "identifier": None,
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+        },
+        "version": "1.0.0",
     }
 
+
 def test_servers_summary(openapi: OpenAPI):
-    assert openapi.servers_summary() == [{'url': 'https://petstore.swagger.io/v2'}]
+    assert openapi.servers_summary() == [{"url": "https://petstore.swagger.io/v2"}]
+
 
 def test_paths_summary_default_excluded_properties(openapi: OpenAPI):
     path_summary = openapi.paths_summary()
-    assert all([key in path_summary.keys() for key in ['/pets', '/pets/{id}']])
-    assert all([key in path_summary['/pets/{id}'].keys() for key in ['get', 'delete']])
-    assert all([key in path_summary['/pets/{id}']['get'].keys() for key in ['description', 'parameters', 'responses']])
+    assert all([key in path_summary.keys() for key in ["/pets", "/pets/{id}"]])
+    assert all([key in path_summary["/pets/{id}"].keys() for key in ["get", "delete"]])
+    assert all(
+        [
+            key in path_summary["/pets/{id}"]["get"].keys()
+            for key in ["description", "parameters", "responses"]
+        ]
+    )
+
 
 def test_paths_summary_custom_excluded_properties(openapi: OpenAPI):
-    path_summary = openapi.paths_summary(excluded_operation_properties=['description', 'parameters'])
-    assert all([key in path_summary['/pets/{id}']['get'].keys() for key in ['operationId', 'responses']])
+    path_summary = openapi.paths_summary(
+        excluded_operation_properties=["description", "parameters"]
+    )
+    assert all(
+        [
+            key in path_summary["/pets/{id}"]["get"].keys()
+            for key in ["operationId", "responses"]
+        ]
+    )
+
 
 def test_paths_summary_excluded_200_response(openapi: OpenAPI):
     path_summary = openapi.paths_summary(exclude_non_2XX_responses=True)
-    assert '404' not in path_summary['/pets/{id}']['delete']['responses']
+    assert "404" not in path_summary["/pets/{id}"]["delete"]["responses"]
+
 
 def test_openapi_summary(openapi: OpenAPI):
     summary = openapi.summary()
-    assert all([key in summary for key in ['info', 'servers', 'paths']])
+    assert all([key in summary for key in ["info", "servers", "paths"]])
     assert isinstance(summary, dict)

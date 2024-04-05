@@ -1,26 +1,39 @@
 import inspect
 from typing import Optional, List
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 
-OPENAPI_OPERATIONS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']
+OPENAPI_OPERATIONS = [
+    "get",
+    "put",
+    "post",
+    "delete",
+    "options",
+    "head",
+    "patch",
+    "trace",
+]
+
 
 @dataclass_json
 class OpenAPIABC(ABC):
     ...
-    
+
     def _to_dict(self):
-        '''
+        """
         Wrapper around to_dict() method to remove None values from the dictionary representation.
-        '''
+        """
         return {k: v for k, v in self.to_dict().items() if v is not None}
-    
+
     def summarize(self, excluded_properties: List[str]):
-        '''
+        """
         Returns the object in dictionary format excluding the properties in the excluded_properties list.
-        '''
-        return {k: v for k, v in self._to_dict().items() if k not in excluded_properties}
+        """
+        return {
+            k: v for k, v in self._to_dict().items() if k not in excluded_properties
+        }
+
 
 # Info OpenAPI Component
 @dataclass
@@ -29,11 +42,13 @@ class Contact(OpenAPIABC):
     url: Optional[str] = None
     email: Optional[str] = None
 
+
 @dataclass
 class License(OpenAPIABC):
     name: Optional[str] = None
     identifier: Optional[str] = None
     url: Optional[str] = None
+
 
 @dataclass
 class Info(OpenAPIABC):
@@ -45,6 +60,7 @@ class Info(OpenAPIABC):
     license: Optional[License] = None
     version: Optional[str] = None
 
+
 # Server OpenAPI Component
 @dataclass
 class Server(OpenAPIABC):
@@ -52,11 +68,13 @@ class Server(OpenAPIABC):
     description: Optional[str] = None
     variables: Optional[dict] = None
 
+
 # Path OpenAPI Component
 @dataclass
 class ExternalDocumentation(OpenAPIABC):
     url: str
     description: Optional[str] = None
+
 
 @dataclass
 class Operation(OpenAPIABC):
@@ -69,6 +87,7 @@ class Operation(OpenAPIABC):
     requestBody: Optional[dict] = None
     responses: Optional[dict] = None
     deprecated: Optional[bool] = None
+
 
 @dataclass
 class PathItem(OpenAPIABC):

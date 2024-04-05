@@ -1,17 +1,24 @@
 import pytest
-from anydata.engine.prompts.user_prompts import relative_url_user_prompt, rest_api_operation_user_prompt, rest_api_parameters_user_prompt
+from anydata.engine.prompts.user_prompts import (
+    relative_url_user_prompt,
+    rest_api_operation_user_prompt,
+    rest_api_parameters_user_prompt,
+)
+
 
 @pytest.fixture
 def sample_prompt():
     return "Retrieve something from this API."
 
+
 @pytest.fixture
 def sample_endpoint():
-    return '/pets'
+    return "/pets"
+
 
 @pytest.fixture
 def sample_openapi():
-    return '''
+    return """
 {
   "openapi": "3.0.0",
   "info": {
@@ -43,21 +50,32 @@ def sample_openapi():
     }
   }
 }
-'''
+"""
+
 
 def test_relative_url_user_prompt(sample_prompt, sample_openapi):
-    processed_prompt = relative_url_user_prompt(prompt=sample_prompt, openapi=sample_openapi, endpoints=['/pets'])
+    processed_prompt = relative_url_user_prompt(
+        prompt=sample_prompt, openapi=sample_openapi, endpoints=["/pets"]
+    )
     assert sample_prompt in processed_prompt
     assert sample_openapi in processed_prompt
 
+
 def test_rest_api_operation_user_prompt(sample_prompt, sample_endpoint, sample_openapi):
-    processed_prompt = rest_api_operation_user_prompt(prompt=sample_prompt, endpoint=sample_endpoint, openapi=sample_openapi)
+    processed_prompt = rest_api_operation_user_prompt(
+        prompt=sample_prompt, endpoint=sample_endpoint, openapi=sample_openapi
+    )
     assert sample_prompt in processed_prompt
     assert sample_endpoint in processed_prompt
     assert sample_openapi in processed_prompt
 
-def test_rest_api_parameters_user_prompt(sample_prompt, sample_endpoint, sample_openapi):
-    processed_prompt = rest_api_parameters_user_prompt(prompt=sample_prompt, endpoint=sample_endpoint, openapi=sample_openapi)
+
+def test_rest_api_parameters_user_prompt(
+    sample_prompt, sample_endpoint, sample_openapi
+):
+    processed_prompt = rest_api_parameters_user_prompt(
+        prompt=sample_prompt, endpoint=sample_endpoint, openapi=sample_openapi
+    )
     assert sample_prompt in processed_prompt
     assert sample_endpoint in processed_prompt
     assert sample_openapi in processed_prompt

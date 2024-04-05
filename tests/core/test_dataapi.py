@@ -246,17 +246,20 @@ sample_openapi = """
 }
 """
 
+
 @pytest.fixture
 def data_api():
     return DataAPI(base_url="https://pokeapi.co/api/v2/")
 
-#%% Core methods
+
+# %% Core methods
 def test_add_endpoint(data_api: DataAPI) -> None:
     data_api.add_endpoint(
         endpoint="pokemon/{name}",
         method="GET",
     )
     assert "pokemon/{name}" in data_api
+
 
 def test_add_endpoint_with_alias(data_api: DataAPI) -> None:
     data_api.add_endpoint(
@@ -267,6 +270,7 @@ def test_add_endpoint_with_alias(data_api: DataAPI) -> None:
     assert "get_pikachu" in data_api
     assert "pokemon/{name}" not in data_api
 
+
 def test_list_endpoints(data_api: DataAPI) -> None:
     data_api.add_endpoint(
         endpoint="pokemon/{name}",
@@ -275,10 +279,11 @@ def test_list_endpoints(data_api: DataAPI) -> None:
     data_api.add_endpoint(
         endpoint="pokemon/{name}/encounters",
         method="GET",
-        alias="get_pikachu_encounters"
+        alias="get_pikachu_encounters",
     )
     assert data_api.endpoints()[1][0] == "pokemon/{name}"
     assert data_api.endpoints()[0][0] == "get_pikachu_encounters"
+
 
 def test_remove_endpoint(data_api: DataAPI) -> None:
     data_api.add_endpoint(
@@ -287,6 +292,7 @@ def test_remove_endpoint(data_api: DataAPI) -> None:
     )
     data_api.remove_endpoints("pokemon/{name}")
     assert "pokemon/{name}" not in data_api
+
 
 def test_remove_endpoints_with_regex(data_api: DataAPI) -> None:
     data_api.add_endpoint(
@@ -301,6 +307,7 @@ def test_remove_endpoints_with_regex(data_api: DataAPI) -> None:
     assert "pokemon/{name}" not in data_api
     assert "pokemon/{name}/encounters" not in data_api
 
+
 def test_keep_endpoints(data_api: DataAPI) -> None:
     data_api.add_endpoint(
         endpoint="pokemon/{name}",
@@ -313,6 +320,7 @@ def test_keep_endpoints(data_api: DataAPI) -> None:
     data_api.keep_endpoints("pokemon/{name}")
     assert "pokemon/{name}" in data_api
     assert "pokemon/{name}/encounters" not in data_api
+
 
 def test_keep_endpoints_with_regex(data_api: DataAPI) -> None:
     data_api.add_endpoint(
@@ -332,6 +340,7 @@ def test_keep_endpoints_with_regex(data_api: DataAPI) -> None:
     assert "pokemon/other/2" in data_api
     assert "pokemon/{name}" not in data_api
 
+
 def test_set_and_propagate_shared_params(data_api: DataAPI) -> None:
     data_api.add_endpoint(
         endpoint="pokemon/{name}",
@@ -341,16 +350,14 @@ def test_set_and_propagate_shared_params(data_api: DataAPI) -> None:
         endpoint="pokemon/{name}/encounters",
         method="GET",
     )
-    data_api.set_shared_params(
-        params={
-            "limit": 10,
-            "offset": 0
-        },
-        propagate=True
+    data_api.set_shared_params(params={"limit": 10, "offset": 0}, propagate=True)
+    assert data_api["pokemon/{name}"].params == {"limit": 10, "offset": 0}
+    assert (
+        data_api["pokemon/{name}"].params
+        == data_api["pokemon/{name}/encounters"].params
     )
-    assert data_api['pokemon/{name}'].params == {"limit": 10, "offset": 0}
-    assert data_api['pokemon/{name}'].params == data_api['pokemon/{name}/encounters'].params
     assert data_api.shared_params == {"limit": 10, "offset": 0}
+
 
 def test_set_and_propagate_shared_headers(data_api: DataAPI) -> None:
     data_api.add_endpoint(
@@ -362,54 +369,56 @@ def test_set_and_propagate_shared_headers(data_api: DataAPI) -> None:
         method="GET",
     )
     data_api.set_shared_headers(
-        headers={
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0"
-        },
-        propagate=True
+        headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+        propagate=True,
     )
     assert all(
-        ["Content-Type" in data_api['pokemon/{name}'].headers.keys(),
-        "User-Agent" in data_api['pokemon/{name}'].headers.keys()]
+        [
+            "Content-Type" in data_api["pokemon/{name}"].headers.keys(),
+            "User-Agent" in data_api["pokemon/{name}"].headers.keys(),
+        ]
     )
-    assert data_api['pokemon/{name}'].headers == data_api['pokemon/{name}/encounters'].headers
+    assert (
+        data_api["pokemon/{name}"].headers
+        == data_api["pokemon/{name}/encounters"].headers
+    )
+
 
 def test_merge_shared_params(data_api: DataAPI) -> None:
+    data_api.add_endpoint(endpoint="pokemon/{name}", method="GET", params={"limit": 5})
     data_api.add_endpoint(
-        endpoint="pokemon/{name}",
-        method="GET",
-        params={"limit": 5}
+        endpoint="pokemon/{name}/encounters", method="GET", params={"limit": 5}
     )
-    data_api.add_endpoint(
-        endpoint="pokemon/{name}/encounters",
-        method="GET",
-        params={"limit": 5}
+    data_api.set_shared_params(params={"offset": 0}, propagate=True)
+    assert data_api["pokemon/{name}"].params == {"limit": 5, "offset": 0}
+    assert (
+        data_api["pokemon/{name}"].params
+        == data_api["pokemon/{name}/encounters"].params
     )
-    data_api.set_shared_params(
-        params={"offset": 0},
-        propagate=True
-    )
-    assert data_api['pokemon/{name}'].params == {"limit": 5, "offset": 0}
-    assert data_api['pokemon/{name}'].params == data_api['pokemon/{name}/encounters'].params
     assert data_api.shared_params == {"offset": 0}
+
 
 def test_merge_shared_path_params(data_api: DataAPI) -> None:
     data_api.add_endpoint(
         endpoint="pokemon/{name}/{another_path_param}",
         method="GET",
-        params={"name": "pikachu", "another_path_param": "another_value"}
+        params={"name": "pikachu", "another_path_param": "another_value"},
     )
     data_api.add_endpoint(
         endpoint="pokemon/{name}/{another_path_param}/encounters",
         method="GET",
     )
-    data_api.set_shared_params(
-        params={"name": "bulbasaur"},
-        propagate=True
-    )
-    assert data_api["pokemon/{name}/{another_path_param}"].path_params == {"name": "bulbasaur", "another_path_param": "another_value"}
-    assert data_api["pokemon/{name}/{another_path_param}/encounters"].path_params == {"name": "bulbasaur", "another_path_param": None}
+    data_api.set_shared_params(params={"name": "bulbasaur"}, propagate=True)
+    assert data_api["pokemon/{name}/{another_path_param}"].path_params == {
+        "name": "bulbasaur",
+        "another_path_param": "another_value",
+    }
+    assert data_api["pokemon/{name}/{another_path_param}/encounters"].path_params == {
+        "name": "bulbasaur",
+        "another_path_param": None,
+    }
     assert data_api.shared_params == {"name": "bulbasaur"}
+
 
 def test_persisted_shared_params(data_api: DataAPI) -> None:
     data_api.set_shared_params({"name": "pikachu", "limit": 10})
@@ -424,22 +433,26 @@ def test_persisted_shared_params(data_api: DataAPI) -> None:
     )
     assert data_api.shared_params == {"name": "pikachu", "limit": 10}
 
+
 def test_instantiate_from_openapir() -> None:
     data_api = DataAPI.from_openapi(sample_openapi)
-    endpoints = [
-        "get:/pets",
-        "post:/pets",
-        "get:/pets/{id}",
-        "delete:/pets/{id}"
-    ]
+    endpoints = ["get:/pets", "post:/pets", "get:/pets/{id}", "delete:/pets/{id}"]
     assert all([e in data_api for e in endpoints])
-    assert (data_api['get:/pets'].method == "get" and data_api['get:/pets'].endpoint == "/pets")
-    assert (data_api['post:/pets'].method == "post" and data_api['get:/pets'].endpoint == "/pets")
+    assert (
+        data_api["get:/pets"].method == "get"
+        and data_api["get:/pets"].endpoint == "/pets"
+    )
+    assert (
+        data_api["post:/pets"].method == "post"
+        and data_api["get:/pets"].endpoint == "/pets"
+    )
 
-#%% Auxiliary methods
+
+# %% Auxiliary methods
 def test_manual_assignment_failure(data_api: DataAPI) -> None:
     with pytest.raises(NotImplementedError):
         data_api["pokemon/{name}"] = "GET"
+
 
 def test_set_endpoint_alias(data_api: DataAPI) -> None:
     data_api.add_endpoint(
@@ -450,14 +463,17 @@ def test_set_endpoint_alias(data_api: DataAPI) -> None:
     assert "get_pikachu" in data_api
     assert "pokemon/{name}" not in data_api
 
-#%% ABC methods
+
+# %% ABC methods
 def test_delete_inexistent_endpoint(data_api: DataAPI) -> None:
     with pytest.raises(KeyError):
         del data_api["inexistent/endpoint"]
 
+
 def test_iterable_not_implemented(data_api: DataAPI) -> None:
     with pytest.raises(NotImplementedError):
         iter(data_api)
+
 
 def test_len_not_implemented(data_api: DataAPI) -> None:
     with pytest.raises(TypeError):

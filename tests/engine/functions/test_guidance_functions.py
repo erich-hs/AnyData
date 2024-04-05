@@ -1,9 +1,14 @@
 import pytest
-from anydata.engine.functions import relative_url_from_openapi, rest_api_operation_from_openapi, rest_api_parameters_from_openapi, dataapi_from_prompt
+from anydata.engine.functions import (
+    relative_url_from_openapi,
+    rest_api_operation_from_openapi,
+    rest_api_parameters_from_openapi,
+    dataapi_from_prompt,
+)
 from anydata.parsers.openapi import instantiate_openapi
 from guidance.models import MockChat
 
-sample_openapi = '''
+sample_openapi = """
 {
   "openapi": "3.0.0",
   "info": {
@@ -41,15 +46,18 @@ sample_openapi = '''
     }
   }
 }
-'''
+"""
+
 
 @pytest.fixture
 def openapi():
     return instantiate_openapi(sample_openapi)
 
+
 @pytest.fixture
 def mock_lm():
     return MockChat()
+
 
 def test_relative_url_from_openapi(mock_lm, openapi):
     lm = mock_lm
@@ -57,47 +65,68 @@ def test_relative_url_from_openapi(mock_lm, openapi):
     lm += relative_url_from_openapi(prompt=prompt, openapi=openapi)
     assert prompt in lm.__str__()
     assert all([e in lm.__str__() for e in openapi.paths.keys()])
-    assert lm['endpoint']
+    assert lm["endpoint"]
 
-def test_rest_api_operation_from_openapi_with_explicit_endpoint(mock_lm, openapi, endpoint="/pets/{id}"):
+
+def test_rest_api_operation_from_openapi_with_explicit_endpoint(
+    mock_lm, openapi, endpoint="/pets/{id}"
+):
     lm = mock_lm
     prompt = "Give me a REST operation."
-    lm += rest_api_operation_from_openapi(prompt=prompt, openapi=openapi, endpoint=endpoint)
+    lm += rest_api_operation_from_openapi(
+        prompt=prompt, openapi=openapi, endpoint=endpoint
+    )
     assert prompt in lm.__str__()
     assert endpoint in lm.__str__()
-    assert lm['method']
+    assert lm["method"]
 
-def test_failed_rest_api_operation_from_openapi_without_explicit_endpoint(mock_lm, openapi):
+
+def test_failed_rest_api_operation_from_openapi_without_explicit_endpoint(
+    mock_lm, openapi
+):
     lm = mock_lm
     prompt = "Give me a REST operation."
     with pytest.raises(AssertionError):
         lm += rest_api_operation_from_openapi(prompt=prompt, openapi=openapi)
 
-def test_rest_api_parameters_from_openapi_with_explicit_endpoint_and_method(mock_lm, openapi, endpoint="/pets/{id}", method="get"):
+
+def test_rest_api_parameters_from_openapi_with_explicit_endpoint_and_method(
+    mock_lm, openapi, endpoint="/pets/{id}", method="get"
+):
     lm = mock_lm
     prompt = "Give me the parameters for the REST API."
-    lm += rest_api_parameters_from_openapi(prompt=prompt, openapi=openapi, endpoint=endpoint, method=method)
+    lm += rest_api_parameters_from_openapi(
+        prompt=prompt, openapi=openapi, endpoint=endpoint, method=method
+    )
     assert prompt in lm.__str__()
     assert endpoint in lm.__str__()
     assert "Returns a single pet" in lm.__str__()
-    assert lm['parameters']
+    assert lm["parameters"]
 
-def test_failed_rest_api_parameters_from_openapi_without_explicit_endpoint(mock_lm, openapi):
+
+def test_failed_rest_api_parameters_from_openapi_without_explicit_endpoint(
+    mock_lm, openapi
+):
     lm = mock_lm
     prompt = "Give me the parameters for the REST API."
     with pytest.raises(AssertionError):
         lm += rest_api_parameters_from_openapi(prompt=prompt, openapi=openapi)
 
-def test_failed_rest_api_parameters_from_openapi_without_explicit_method(mock_lm, openapi, endpoint="/pets/{id}"):
+
+def test_failed_rest_api_parameters_from_openapi_without_explicit_method(
+    mock_lm, openapi, endpoint="/pets/{id}"
+):
     lm = mock_lm
     prompt = "Give me the parameters for the REST API."
     with pytest.raises(AssertionError):
-        lm += rest_api_parameters_from_openapi(prompt=prompt, openapi=openapi, endpoint=endpoint)
+        lm += rest_api_parameters_from_openapi(
+            prompt=prompt, openapi=openapi, endpoint=endpoint
+        )
+
 
 def test_dataapi_from_prompt(mock_lm, openapi):
     lm = mock_lm
     prompt = "Give me data from a cat with ID=123 from this API."
     lm += dataapi_from_prompt(prompt=prompt, openapi=openapi)
     assert prompt in lm.__str__()
-    assert all([p in lm for p in ['endpoint', 'method', 'parameters']])
-    
+    assert all([p in lm for p in ["endpoint", "method", "parameters"]])

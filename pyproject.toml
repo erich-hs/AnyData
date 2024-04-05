@@ -16,8 +16,13 @@ pyyaml = "^6.0.1"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
 pytest-cov = "^5.0.0"
-ruff = "^0.3.5"
+ruff = "^0.1.0"
 python-dotenv = "^1.0.1"
+pre-commit = "^3.7.0"
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"anydata/engine/models.py" = ["F401"]
 
 [build-system]
 requires = ["poetry-core"]

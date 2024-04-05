@@ -1,13 +1,14 @@
 import copy
 from typing import Optional
-from requests.sessions import Session
 from collections.abc import MutableMapping
 from requests.sessions import Session, merge_setting
 
+
 class ABCDataAPI(MutableMapping):
-    '''
+    """
     Abstract Base Class for DataAPI
-    '''
+    """
+
     def __setitem__(self, key, value):
         self.__dict__[key] = value
 
@@ -29,30 +30,32 @@ class ABCDataAPI(MutableMapping):
     def __len__(self):
         raise TypeError("Object of type DataAPI has no len()")
 
+
 class EndpointSession(Session):
-    '''
+    """
     Base Class for Endpoint.
 
     Wrapper around requests.Session with a fixed endpoint (relative URL) and list of
     available methods.
-    '''
+    """
+
     def __init__(
-            self,
-            base_url: str,
-            endpoint: str,
-            method: str,
-            params: Optional[dict] = None,  # super: {}
-            body: Optional[dict] = None,    # renaming from Session.data
-            headers: Optional[dict] = None, # super: default_headers()
-            cookies: Optional[dict] = None, # super: cookiejar_from_dict({})
-            files: Optional[dict] = None,
-            auth: Optional[dict] = None,    # super: None
-            timeout: Optional[int] = None,
-            allow_redirects: Optional[bool] = True,
-            proxies: Optional[dict] = None, # super: {}
-            stream: Optional[bool] = False, # super: False
-            verify: Optional[bool] = True,  # super: True
-            cert: Optional[str] = None,     # super: None
+        self,
+        base_url: str,
+        endpoint: str,
+        method: str,
+        params: Optional[dict] = None,  # super: {}
+        body: Optional[dict] = None,  # renaming from Session.data
+        headers: Optional[dict] = None,  # super: default_headers()
+        cookies: Optional[dict] = None,  # super: cookiejar_from_dict({})
+        files: Optional[dict] = None,
+        auth: Optional[dict] = None,  # super: None
+        timeout: Optional[int] = None,
+        allow_redirects: Optional[bool] = True,
+        proxies: Optional[dict] = None,  # super: {}
+        stream: Optional[bool] = False,  # super: False
+        verify: Optional[bool] = True,  # super: True
+        cert: Optional[str] = None,  # super: None
     ):
         self.base_url = base_url
         self.endpoint = endpoint
@@ -78,16 +81,16 @@ class EndpointSession(Session):
         self.cert = cert
 
     def request(
-            self,
-            endpoint: Optional[str] = None,
-            params: Optional[dict] = None,
-            body: Optional[dict] = None,
-            headers: Optional[dict] = None,
-            files: Optional[dict] = None,
-            timeout: Optional[int] = None,
-            stream: Optional[bool] = False
+        self,
+        endpoint: Optional[str] = None,
+        params: Optional[dict] = None,
+        body: Optional[dict] = None,
+        headers: Optional[dict] = None,
+        files: Optional[dict] = None,
+        timeout: Optional[int] = None,
+        stream: Optional[bool] = False,
     ):
-        '''
+        """
         At request time, you can redefine:
         - endpoint: relative URL
         - params: query string parameters
@@ -97,9 +100,10 @@ class EndpointSession(Session):
         - timeout: request timeout
         - stream: flag to set stream mode
         All other parameters are set at session creation time.
-        '''
+        """
 
         # If 'endpoint' is not explicitly defined, use the default endpoint
+        # Explicitly defined endpoints allows endpoints with path parameters to be formatted at request time
         if not endpoint:
             endpoint = self.endpoint
 
@@ -109,7 +113,7 @@ class EndpointSession(Session):
         # and settings defined at Session via merge_setting() function.
         resp = super().request(
             method=self.method,
-            url=self.base_url+endpoint,
+            url=self.base_url + endpoint,
             params=params or self.params,
             data=body or self.body,
             headers=headers or self.headers,
@@ -122,6 +126,6 @@ class EndpointSession(Session):
             hooks=self.hooks,
             stream=stream or self.stream,
             verify=self.verify,
-            cert=self.cert
+            cert=self.cert,
         )
         return resp
