@@ -87,15 +87,16 @@ def openapi_dict_from_file(openapi_file: str) -> dict:
 
 # %% OpenAPI class
 class OpenAPI:
-    def __init__(self, openapi_spec: dict) -> None:
+    """Parser for OpenAPI specifications."""
+
+    def __init__(self, openapi_spec: Union[str, dict]) -> None:
         """
-        Instantiates an OpenAPI object from a dictionary.
+        Instantiates an OpenAPI object from an Open API specification. The specification can be a dictionary, a JSON or YAML string, or a file path.
         """
         self.json = openapi_spec
         self.info = openapi_info_from_dict(self._json)
         self.servers = openapi_servers_from_dict(self._json)
         self.paths = openapi_paths_from_dict(self._json)
-        # self.json = openapi_dict
 
     @property
     def json(self):
@@ -103,6 +104,14 @@ class OpenAPI:
 
     @json.setter
     def json(self, openapi_spec: Union[str, dict]):
+        """Sets the OpenAPI specification as a dictionary. Takes as input a dictionary, a JSON or YAML string, a file path, or a URL.
+
+        Args:
+            openapi_spec (Union[str, dict]): A dictionary, a JSON or YAML string, a file path, or a URL containing the OpenAPI specification.
+
+        Raises:
+            InvalidOpenAPIFormat: Raises on invalid input.
+        """
         if isinstance(openapi_spec, dict):
             self._json = openapi_spec
         elif isinstance(openapi_spec, str):
@@ -119,23 +128,10 @@ class OpenAPI:
                 "The OpenAPI specification must be either a dictionary or as a valid JSON or YAML source."
             )
 
-        # if os.path.isfile(openapi_spec):
-        #     self._json = openapi_dict_from_file(openapi_spec)
-        # elif isinstance(openapi_spec, str):
-        #     if urlparse(openapi_spec).scheme in ["http", "https"]:
-        #         openapi_spec = requests.get(openapi_spec).text
-        #     self._json = openapi_dict_from_str(openapi_spec)
-        # elif isinstance(openapi_spec, dict):
-        #     self._json = openapi_spec
-        # else:
-        #     raise InvalidOpenAPIFormat(
-        #         "The OpenAPI specification must be either a dictionary or as a valid JSON or YAML source."
-        #     )
-
     def to_dict(self):
         """
         Returns the OpenAPI object as a dictionary.
-        This method doesn't reconstruct the originating OpenAPI dictionary.
+        This method doesn't reconstruct the originating OpenAPI dictionary, which can be accessed from the `.json` parameter.
         """
         return {
             "info": self.info._to_dict(),
@@ -146,9 +142,10 @@ class OpenAPI:
     # Summarizers
     @property
     def endpoint_methods(self) -> List[Tuple[str, List[str]]]:
-        """
-        Returns a list of tuples with the endpoints and its available methods from OpenAPI paths.
-        (endpoint, [methods])
+        """Lists endpoints and its available methods from OpenAPI paths.
+
+        Returns:
+            List[Tuple[str, List[str]]]: List of tuples with the endpoint and its available methods in a format (endpoint, [methods]).
         """
         endpoints_methods = []
         for endpoint, path_item in self.paths.items():
@@ -166,21 +163,26 @@ class OpenAPI:
             "version",
         ],
     ) -> dict:
-        """
-        Returns a summary of the OpenAPI info.
-        Parameters:
-            - excluded_info_properties: List of properties to exclude from the Info object.
-        Returns a dictionary with the remaining properties.
+        """Returns a summary of the OpenAPI info.
+
+        Args:
+            excluded_info_properties (List[str], optional): List of properties to exclude from the Info object. Defaults to [ "termsOfService", "contact", "license", "version", ].
+
+        Returns:
+            dict: Returns a dictionary with the remaining properties.
         """
         return self.info.summarize(excluded_properties=excluded_info_properties)
 
     def servers_summary(
         self, excluded_server_properties: List[str] = [""]
     ) -> List[dict]:
-        """
-        Returns a summary of the OpenAPI servers.
-        --- This function is currently not excluding any properties from the Server objects. ---
-        Returns a dictionary with the properties of each Server object.
+        """Returns a summary of the OpenAPI servers.
+
+        Args:
+            excluded_server_properties (List[str], optional): List of properties to exclude from the Server objects. Defaults to [""].
+
+        Returns:
+            List[dict]: Returns a dictionary with the properties of each Server object.
         """
         return [
             s.summarize(excluded_properties=excluded_server_properties)
@@ -195,11 +197,14 @@ class OpenAPI:
     ) -> dict:
         """
         Returns a summary of the OpenAPI paths and its operations.
-        Parameters:
-            - excluded_operation_properties: List of properties to exclude from the Operation objects.
-            - exclude_non_2XX_responses: If True, excludes non-2XX responses from the 'responses' dictionary of the Operation objects.
-            Default: True
-        Returns a dictionary with the summarized properties of each PathItem and Operation objects.
+
+        Args:
+            excluded_operation_properties (List[str], optional): List of properties to exclude from the Operation objects. Defaults to ["externalDocs", "operationId"].
+            exclude_non_2XX_responses (bool, optional): If True, excludes non-2XX responses from the 'responses' dictionary of the Operation objects. Defaults to True.
+            resolve_parameter_references (bool, optional): If True, resolves parameter references from the specification. Defaults to True.
+
+        Returns:
+            dict: A summarized json with the properties of each PathItem and its Operation objects.
         """
         paths_summary = {}
         for path in self.paths:
@@ -252,10 +257,18 @@ class OpenAPI:
         ],
         exclude_non_2XX_responses: bool = True,
         resolve_parameter_references: bool = False,
-    ):
-        """
-        Higher-level summary of the OpenAPI object.
-        Returns a dictionary that includes a summary of the info, servers, and paths parameters.
+    ) -> dict:
+        """High-level summary of the OpenAPI object.
+
+        Args:
+            excluded_info_properties (List[str], optional): List of properties to exclude from the Info object. Defaults to [ "termsOfService", "contact", "license", "version", ].
+            excluded_server_properties (List[str], optional): List of properties to exclude from the Server objects. Defaults to [""].
+            excluded_operation_properties (List[str], optional): List of properties to exclude from the Operation objects. Defaults to [ "externalDocs", "operationId", "parameters", "responses", ].
+            exclude_non_2XX_responses (bool, optional): If True, excludes non-2XX responses from the 'responses' dictionary of the Operation objects. Defaults to True.
+            resolve_parameter_references (bool, optional): If True, resolves parameter references from the specification. Defaults to False.
+
+        Returns:
+            dict: A dictionary containing a summary of the info, servers, and paths parameters.
         """
         return {
             "info": self.info_summary(excluded_info_properties),
@@ -266,3 +279,6 @@ class OpenAPI:
                 resolve_parameter_references,
             ),
         }
+
+
+# %%
