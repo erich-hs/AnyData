@@ -10,7 +10,7 @@ pip install anydata
 
 ## DataAPI
 
-Speed-up your interaction with public datasets available at REST APIs endpoints with a `DataAPI` object
+Speed-up your interaction with public datasets available at REST APIs endpoints with a `DataAPI` object.
 
 ```python
 from anydata import DataAPI
@@ -44,9 +44,13 @@ valet_api['CAD_to_JPY']
 Endpoint(method="get", endpoint="/observations/{seriesNames}/{format}", params={'start_date': '2020-01-01'}, path_params={'seriesNames': 'FXCADJPY', 'format': 'json'})
 ```
 
+---
+
 ### A simple and elegant way to interact with REST APIs
 
-Instantiate from a base URL and manage endpoints individually
+A `DataAPI` object is a collection of `Endpoint` sessions.
+
+1. You can instantiate a collection from a base URL and manage endpoints individually.
 
 ```python
 from anydata import DataAPI
@@ -54,15 +58,20 @@ from anydata import DataAPI
 valet_api = DataAPI(base_url="https://www.bankofcanada.ca/valet")
 
 # Add endpoint
-valet_api.add_endpoint("/observations/{seriesNames}/{format}", method="GET")
+valet_api.add_endpoint(
+    "/observations/{seriesNames}/{format}",
+    method="GET",
+    params={"format": "json", "seriesNames": "FXUSDCAD"},
+    alias="USD_to_CAD"
+)
 
 # Fetch to pandas DataFrame
-valet_api["/observations/{seriesNames}/{format}"].to_pandas(params={"seriesNames": "FXUSDCAD", "format": "json"})
+valet_api["USD_to_CAD"].to_pandas()
 ```
 
 ![Pandas DataFrame with forex data from USD to CAD](docs/images/df_example_00.png)
 
-Or populate the DataAPI collection with all available endpoints
+2. Or populate it with all available endpoints by parsing an Open API specification with the `.from_openapi()` method.
 
 ```python
 valet_api = DataAPI.from_openapi('https://www.bankofcanada.ca/valet/static/swagger/api-en.yml')
@@ -86,11 +95,10 @@ valed_api.endpoints()
 ```
 
 ```python
-# Set endpoint parameters to fetch USD to CAD forex series
-valet_api["/observations/{seriesNames}/{format}"].set_params({"seriesNames": "FXUSDCAD", "format": "json"})
-
-# Fetch to pandas dataframe
-valet_api["/observations/{seriesNames}/{format}"].to_pandas()
+# Fetch to pandas DataFrame
+valet_api["/observations/{seriesNames}/{format}"].to_pandas(
+    params={"seriesNames": "FXUSDCAD", "format": "json"}
+)
 ```
 
 ![Pandas DataFrame with forex data from USD to CAD](docs/images/df_example_00.png)
