@@ -1,7 +1,13 @@
 import os
 import json
+import yaml
+import requests
+from json.decoder import JSONDecodeError
+from yaml.parser import ParserError
+from urllib.parse import urlparse
 from typing import List, Dict, Union, Tuple
 from ..schemas.openapi import Info, Server, PathItem, OPENAPI_OPERATIONS
+from ..exceptions import InvalidOpenAPIFormat
 
 """
 How-to from swaggerhub to json:
@@ -62,42 +68,69 @@ def resolve_references(relative_dict, complete_dict):
 
 
 # OpenAPI instantiation functions
-def openapi_dict_from_json_str(openapi_json: str) -> dict:
-    return json.loads(openapi_json)
+def openapi_dict_from_str(openapi_str: str) -> dict:
+    try:
+        return json.loads(openapi_str)
+    except JSONDecodeError:
+        pass
+    try:
+        return yaml.safe_load(openapi_str)
+    except ParserError:
+        raise InvalidOpenAPIFormat("The input must be a valid JSON or YAML.")
 
 
-def openapi_dict_from_json_file(openapi_json_file: str) -> dict:
-    assert openapi_json_file.endswith(".json"), "This method expects a .json file."
-    with open(openapi_json_file, "r") as f:
-        return json.load(f)
-
-
-def instantiate_openapi(openapi: Union[str, dict]) -> "OpenAPI":
-    if isinstance(openapi, OpenAPI):
-        return openapi
-    else:
-        try:
-            if isinstance(openapi, dict):
-                openapi = OpenAPI(openapi)
-            else:
-                openapi = OpenAPI.from_json(openapi)
-        except Exception as e:
-            raise ValueError(
-                f"An error occurred while parsing the Open API Specification: {e}"
-            )
-        return openapi
+def openapi_dict_from_file(openapi_file: str) -> dict:
+    with open(openapi_file, "r") as f:
+        openapi_dict = openapi_dict_from_str(f.read())
+    return openapi_dict
 
 
 # %% OpenAPI class
 class OpenAPI:
-    def __init__(self, openapi_dict: dict) -> None:
+    def __init__(self, openapi_spec: dict) -> None:
         """
         Instantiates an OpenAPI object from a dictionary.
         """
-        self.info = openapi_info_from_dict(openapi_dict)
-        self.servers = openapi_servers_from_dict(openapi_dict)
-        self.paths = openapi_paths_from_dict(openapi_dict)
-        self.json = openapi_dict
+        self.json = openapi_spec
+        self.info = openapi_info_from_dict(self._json)
+        self.servers = openapi_servers_from_dict(self._json)
+        self.paths = openapi_paths_from_dict(self._json)
+        # self.json = openapi_dict
+
+    @property
+    def json(self):
+        return self._json
+
+    @json.setter
+    def json(self, openapi_spec: Union[str, dict]):
+        if isinstance(openapi_spec, dict):
+            self._json = openapi_spec
+        elif isinstance(openapi_spec, str):
+            if urlparse(openapi_spec).scheme in ["http", "https"]:
+                openapi_spec = requests.get(openapi_spec).text
+                openapi_spec = openapi_dict_from_str(openapi_spec)
+            elif os.path.isfile(openapi_spec):
+                openapi_spec = openapi_dict_from_file(openapi_spec)
+            else:
+                openapi_spec = openapi_dict_from_str(openapi_spec)
+            self._json = openapi_spec
+        else:
+            raise InvalidOpenAPIFormat(
+                "The OpenAPI specification must be either a dictionary or as a valid JSON or YAML source."
+            )
+
+        # if os.path.isfile(openapi_spec):
+        #     self._json = openapi_dict_from_file(openapi_spec)
+        # elif isinstance(openapi_spec, str):
+        #     if urlparse(openapi_spec).scheme in ["http", "https"]:
+        #         openapi_spec = requests.get(openapi_spec).text
+        #     self._json = openapi_dict_from_str(openapi_spec)
+        # elif isinstance(openapi_spec, dict):
+        #     self._json = openapi_spec
+        # else:
+        #     raise InvalidOpenAPIFormat(
+        #         "The OpenAPI specification must be either a dictionary or as a valid JSON or YAML source."
+        #     )
 
     def to_dict(self):
         """
@@ -109,18 +142,6 @@ class OpenAPI:
             "servers": [s._to_dict() for s in self.servers],
             "paths": {k: v._to_dict() for k, v in self.paths.items()},
         }
-
-    @classmethod
-    def from_json(cls, openapi_json: Union[str, os.PathLike]) -> "OpenAPI":
-        """
-        This method supports reading from a json string or from a json file path.
-            my_openapi = OpenAPI.from_json('{"info": {"title": "My API"}}')
-            my_openapi = OpenAPI.from_json('path/to/openapi.json')
-        """
-        if os.path.isfile(openapi_json):
-            return cls(openapi_dict_from_json_file(openapi_json))
-        else:
-            return cls(openapi_dict_from_json_str(openapi_json))
 
     # Summarizers
     @property

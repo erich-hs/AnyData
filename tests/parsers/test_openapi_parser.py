@@ -1,15 +1,12 @@
 import json
 import os
 import pytest
-from anydata.parsers.openapi import (
-    OpenAPI,
-    openapi_dict_from_json_file,
-    instantiate_openapi,
-)
+from anydata.parsers.openapi import OpenAPI, openapi_dict_from_str, resolve_references
+from anydata.exceptions import InvalidOpenAPIFormat
 
 
 @pytest.fixture
-def sample_swagger() -> str:
+def sample_json_swagger() -> str:
     return """
 {
   "openapi": "3.0.0",
@@ -260,44 +257,237 @@ def sample_swagger() -> str:
 
 
 @pytest.fixture
-def openapi(sample_swagger: str) -> OpenAPI:
-    return OpenAPI.from_json(sample_swagger)
+def sample_yaml_swagger() -> str:
+    return """
+components:
+  schemas:
+    Error:
+      properties:
+        code:
+          format: int32
+          type: integer
+        message:
+          type: string
+      required:
+      - code
+      - message
+      type: object
+    NewPet:
+      properties:
+        name:
+          type: string
+        tag:
+          type: string
+      required:
+      - name
+      type: object
+    Pet:
+      allOf:
+      - $ref: '#/components/schemas/NewPet'
+      - properties:
+          id:
+            format: int64
+            type: integer
+        required:
+        - id
+        type: object
+info:
+  contact:
+    email: apiteam@swagger.io
+    name: Swagger API Team
+    url: http://swagger.io
+  description: A sample API that uses a petstore as an example to demonstrate features
+    in the OpenAPI 3.0 specification
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Petstore
+  version: 1.0.0
+openapi: 3.0.0
+paths:
+  /pets:
+    get:
+      description: Returns all pets from the system that the user has access to.
+      operationId: findPets
+      parameters:
+      - description: tags to filter by
+        in: query
+        name: tags
+        required: false
+        schema:
+          items:
+            type: string
+          type: array
+        style: form
+      - description: maximum number of results to return
+        in: query
+        name: limit
+        required: false
+        schema:
+          format: int32
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Pet'
+                type: array
+          description: pet response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: unexpected error
+    post:
+      description: Creates a new pet in the store. Duplicates are allowed
+      operationId: addPet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPet'
+        description: Pet to add to the store
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+          description: pet response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: unexpected error
+  /pets/{id}:
+    delete:
+      description: deletes a single pet based on the ID supplied
+      operationId: deletePet
+      parameters:
+      - description: ID of pet to delete
+        in: path
+        name: id
+        required: true
+        schema:
+          format: int64
+          type: integer
+      responses:
+        '204':
+          description: pet deleted
+        '404':
+          description: mock failed response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: unexpected error
+    get:
+      description: Returns a user based on a single ID, if the user does not have
+        access to the pet
+      operationId: find pet by id
+      parameters:
+      - description: ID of pet to fetch
+        in: path
+        name: id
+        required: true
+        schema:
+          format: int64
+          type: integer
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+          description: pet response
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: unexpected error
+servers:
+- url: https://petstore.swagger.io/v2
+"""
 
 
-def test_openapi_from_dict_without_info(sample_swagger: str):
-    openapi_dict = json.loads(sample_swagger)
+@pytest.fixture
+def openapi(sample_json_swagger: str) -> OpenAPI:
+    return OpenAPI(sample_json_swagger)
+
+
+def test_openapi_from_dict_without_info(sample_json_swagger: str):
+    openapi_dict = json.loads(sample_json_swagger)
     del openapi_dict["info"]
     openapi = OpenAPI(openapi_dict)
     assert openapi.info is not None
 
 
-def test_openapi_dict_from_json_file(tmpdir, sample_swagger: str):
+def test_instantiate_openapi_from_json_str(sample_json_swagger: str):
+    openapi = OpenAPI(sample_json_swagger)
+    assert isinstance(openapi, OpenAPI)
+    assert all([hasattr(openapi, attr) for attr in ["info", "servers", "paths"]])
+
+
+def test_instantiate_openapi_from_yaml_str(sample_yaml_swagger: str):
+    openapi = OpenAPI(sample_yaml_swagger)
+    assert isinstance(openapi, OpenAPI)
+    assert all([hasattr(openapi, attr) for attr in ["info", "servers", "paths"]])
+
+
+def test_instantiate_openapi_from_json_file(tmpdir, sample_json_swagger: str):
     swagger = tmpdir.mkdir("tmp").join("swagger.json")
     with open(swagger, "w") as f:
-        f.write(sample_swagger)
-    assert openapi_dict_from_json_file(os.path.abspath(swagger)) == json.loads(
-        sample_swagger
+        f.write(sample_json_swagger)
+    assert isinstance(OpenAPI(os.path.abspath(swagger)), OpenAPI)
+
+
+def test_instantiate_openapi_from_yaml_file(tmpdir, sample_yaml_swagger: str):
+    swagger = tmpdir.mkdir("tmp").join("swagger.yaml")
+    with open(swagger, "w") as f:
+        f.write(sample_yaml_swagger)
+    assert isinstance(OpenAPI(os.path.abspath(swagger)), OpenAPI)
+
+
+def test_instantiate_openapi_from_dict(sample_json_swagger: str):
+    openapi = OpenAPI(json.loads(sample_json_swagger))
+    assert isinstance(openapi, OpenAPI)
+    assert all([hasattr(openapi, attr) for attr in ["info", "servers", "paths"]])
+
+
+def test_instantiate_openapi_from_html():
+    openapi = OpenAPI(
+        "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.json"
     )
+    assert isinstance(openapi, OpenAPI)
 
 
-def test_instantiate_openapi_from_str(sample_swagger: str):
-    assert isinstance(instantiate_openapi(sample_swagger), OpenAPI)
+def test_failed_instantiate_openapi_from_invalid_str():
+    with pytest.raises(InvalidOpenAPIFormat):
+        openapi_dict_from_str("{invalid_string")
 
 
-def test_instantiate_openapi_from_file(tmpdir, sample_swagger: str):
-    swagger = tmpdir.mkdir("tmp").join("swagger.json")
-    with open(swagger, "w") as f:
-        f.write(sample_swagger)
-    assert isinstance(instantiate_openapi(os.path.abspath(swagger)), OpenAPI)
-
-
-def test_instantiate_openapi_from_dict(sample_swagger: str):
-    assert isinstance(instantiate_openapi(json.loads(sample_swagger)), OpenAPI)
-
-
-def test_failed_instantiate_openapi_from_str():
-    with pytest.raises(ValueError):
-        instantiate_openapi("{invalid_json}")
+def test_resolve_references(sample_json_swagger):
+    dict_openapi = json.loads(sample_json_swagger)
+    unresolved_refs = dict_openapi["paths"]["/pets"]["get"]["responses"]["200"]
+    resolved_refs = resolve_references(unresolved_refs, dict_openapi)
+    assert resolved_refs["content"]["application/json"]["schema"]["items"]["$ref"] == {
+        "allOf": [
+            {"$ref": "#/components/schemas/NewPet"},
+            {
+                "type": "object",
+                "required": ["id"],
+                "properties": {"id": {"type": "integer", "format": "int64"}},
+            },
+        ]
+    }
 
 
 def test_openapi_to_dict(openapi: OpenAPI):

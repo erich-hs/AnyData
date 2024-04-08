@@ -5,7 +5,7 @@ from anydata.engine.functions import (
     rest_api_parameters_from_openapi,
     dataapi_from_prompt,
 )
-from anydata.parsers.openapi import instantiate_openapi
+from anydata.parsers.openapi import OpenAPI
 from guidance.models import MockChat
 
 sample_openapi = """
@@ -51,7 +51,7 @@ sample_openapi = """
 
 @pytest.fixture
 def openapi():
-    return instantiate_openapi(sample_openapi)
+    return OpenAPI(sample_openapi)
 
 
 @pytest.fixture

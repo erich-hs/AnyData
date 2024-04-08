@@ -8,7 +8,7 @@ from guidance.models import Model
 from ..schemas.core import ABCDataAPI
 from ..core.endpoint import Endpoint
 from ..engine.functions import dataapi_from_prompt, evaluate_unsuccessful_response
-from ..parsers.openapi import OpenAPI, instantiate_openapi
+from ..parsers.openapi import OpenAPI
 
 
 @dataclass
@@ -27,8 +27,8 @@ class DataAPI(ABCDataAPI):
     lm: Optional[Model] = None
 
     def __post_init__(self) -> None:
-        if self.openapi:
-            self.openapi = instantiate_openapi(self.openapi)
+        if self.openapi and not isinstance(self.openapi, OpenAPI):
+            self.openapi = OpenAPI(self.openapi)
 
     def __setitem__(self, key, value) -> None:
         """
@@ -62,7 +62,7 @@ class DataAPI(ABCDataAPI):
         endpoint.cert = self.cert
 
     def set_openapi(self, openapi: Union[str, dict, OpenAPI]) -> None:
-        self.openapi = instantiate_openapi(openapi)
+        self.openapi = OpenAPI(openapi) if not isinstance(openapi, OpenAPI) else openapi
 
     def set_lm(self, lm: Model) -> None:
         assert isinstance(
@@ -146,23 +146,18 @@ class DataAPI(ABCDataAPI):
     def smart_add_endpoint(
         self,
         prompt: str,
-        openapi: Optional[Union[str, dict, OpenAPI]] = None,
         alias: Optional[str] = None,
         echo: bool = False,
     ) -> None:
         # TODO: Implement retries with backoff
-        if not openapi:
-            assert self.openapi, "An OpenAPI specification is needed for a smart_add_endpoint. Please define one with the 'openapi' parameter or with the .set_openapi() method."
-            openapi = self.openapi
-        else:
-            openapi = instantiate_openapi(openapi)
+        assert self.openapi, "An OpenAPI specification is needed for a smart_add_endpoint. Please define one with the .set_openapi() method."
         assert (
             self.lm is not None
         ), "A language model is needed for a smart_add_endpoint. Please define one with the the .set_lm() method."
         stateless_lm = self.lm.copy()
         stateless_lm.echo = echo
         try:
-            stateless_lm += dataapi_from_prompt(prompt, openapi)
+            stateless_lm += dataapi_from_prompt(prompt, self.openapi)
             # Send test request to the endpoint
             if echo:
                 print("Sending test request to the endpoint...")
@@ -229,7 +224,8 @@ class DataAPI(ABCDataAPI):
     def from_openapi(
         cls, openapi: Union[dict, str, OpenAPI], base_url: Optional[str] = None
     ) -> "DataAPI":
-        openapi = instantiate_openapi(openapi)
+        if not isinstance(openapi, OpenAPI):
+            openapi = OpenAPI(openapi)
         api_servers = [s.url for s in openapi.servers]
         if not base_url:
             if len(api_servers) > 1:
