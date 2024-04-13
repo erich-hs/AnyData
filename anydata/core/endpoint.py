@@ -50,7 +50,37 @@ class Endpoint(EndpointSession):
         **kwargs,
     ) -> None:
         """
-        Allows for Session-level states such as cookies or custom authentication mechanisms.
+        Endpoint object to fetch data from and interact with a REST API.
+        Endpoint is a wrapper around requests.Session with fixed base URL, relative URL, and HTTP method.
+        An Endpoint allows for Session-level states such as cookies or custom authentication mechanisms.
+
+        Examples:
+            An endpoint can be defined with a base URL, relative endpoint, and HTTP method.
+
+                $ endpoint = Endpoint(
+                    base_url="https://api.example.com",
+                    endpoint="/users/{user_id}",
+                    method="GET",
+                    params={"user_id": 1},
+                )
+                $ response = endpoint.request()
+
+            As a wrapper around requests.Session, an Endpoint can be used as a context manager.
+
+                $ with endpoint as e:
+                $     response = e.request()
+
+        Attributes:
+            base_url (str): Base URL of the API.
+            endpoint (str): Relative URL of the API.
+            method (str): HTTP method to be used for requests.
+            alias (str, optional): Alias for the endpoint. This attribute supports Endpoint instantiateds at DataAPI collections. Defaults to None.
+            params (dict, optional): Query parameters for the request. Defaults to None.
+            body (dict, optional): Body of the request. Defaults to None.
+            headers (dict, optional): Custom headers for the request. Defaults to None.
+            raise_unsuccessful (bool, optional): Raise an error if the response is not successful. Defaults to True.
+
+        To learn more, please refer to the [requests.Session documentation](https://requests.readthedocs.io/en/latest/user/advanced/).
         """
         # Storing custom headers for __repr__ method
         self._custom_headers = headers
@@ -134,7 +164,10 @@ class Endpoint(EndpointSession):
     def set_params(self, params: dict) -> None:
         """
         Replace Endpoint 'params' with new parameters.
-        This method overwrites default parameters defined at Endpoint instantiation,
+        This method overwrites default parameters defined at Endpoint instantiation.
+
+        Args:
+            params (dict): New parameters to be set.
         """
         self.params = params
         self._set_path_params()
@@ -142,6 +175,9 @@ class Endpoint(EndpointSession):
     def set_body(self, body: dict) -> None:
         """
         Update the body for the Endpoint.
+
+        Args:
+            body (dict): New body to be set.
         """
         self.body = body
 
@@ -149,6 +185,9 @@ class Endpoint(EndpointSession):
         """
         Merge Endpoint 'params' with new parameters.
         This method replaces existing parameter values with new ones, and preserves the rest.
+
+        Args:
+            params (dict): New parameters to be merged.
         """
         self.params = _merge_setting(params, self.params)
         self._set_path_params()
@@ -158,6 +197,9 @@ class Endpoint(EndpointSession):
         Merge Endpoint 'headers' with new headers.
         This method replaces existing header values with new ones, and preserves the rest.
         It is preferred over manual assignment to avoid losing default headers.
+
+        Args:
+            headers (dict): New headers to be merged.
         """
         self.headers = _merge_setting(headers, self.headers)
 
@@ -170,6 +212,22 @@ class Endpoint(EndpointSession):
         timeout: Optional[int] = None,
         stream: Optional[bool] = None,
     ) -> Response:
+        """Sends an HTTP request with the current Endpoint configuration or with the provided parameters.
+        Explicit parameters passed to this method takes precedence over default attributes at the Endpoint level.
+
+        Args:
+            params (Optional[dict], optional): Path and/or Query parameters. Defaults to None.
+            body (Optional[dict], optional): Body payload for PUT and POST methods. Defaults to None.
+            headers (Optional[dict], optional): Headers. Defaults to None.
+            files (Optional[dict], optional): Files to pass as payload. Defaults to None.
+            timeout (Optional[int], optional): Timeout parameter. Defaults to None.
+            stream (Optional[bool], optional): Stream flag. Defaults to None.
+
+        Returns:
+            Response: Response object from the request.
+
+        To learn more, please refer to the [requests.Session.request documentation](https://requests.readthedocs.io/en/latest/api/#requests.Session.request).
+        """
         if params:
             # Retrieve path parameters passed explicitly in the request
             path_params = {
@@ -206,6 +264,12 @@ class Endpoint(EndpointSession):
     ):
         """
         Returns a pandas DataFrame from the response.
+        This method sends a request and attempts to parse the response as a pandas DataFrame.
+
+        Args:
+            params (Optional[dict], optional): Path and/or Query parameters. Defaults to None.
+            body (Optional[dict], optional): Body payload for PUT and POST methods. Defaults to None.
+            stream (bool, optional): Stream flag. Defaults to False.
         """
         try:
             resp = self.request(params=params, body=body, stream=stream, **kwargs)

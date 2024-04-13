@@ -34,7 +34,7 @@ valet_api['CAD_to_JPY'].to_pandas()
 
 ![Pandas DataFrame with forex data from CAD to JPY](docs/images/df_example_01.png)
 
-The `.smart_add_endpoint()` method instantiated an endpoint at the DataAPI collection to fulfill the prompt:
+The `.smart_add_endpoint()` method instantiates an endpoint at the DataAPI collection to fulfill the prompt:
 
 ```python
 valet_api['CAD_to_JPY']

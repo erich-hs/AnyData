@@ -25,6 +25,56 @@ class DataAPI(ABCDataAPI):
     verify: Optional[bool] = True
     cert: Optional[str] = None
     lm: Optional[Model] = None
+    """DataAPI collection to manage Endpoints.
+
+    Examples:
+        A DataAPI object can be instantiated with a base URL and Endpoints can be added with the add_endpoint() method.
+
+            $ data_api = DataAPI(base_url="https://api.example.com")
+            $ data_api.add_endpoint(endpoint="/users", method="GET")
+
+        As a DataAPI object inherits from MutableMapping, Endpoints can be accessed as dictionary keys.
+
+            $ data_api["/users"].request()
+
+        Smart methods require an OpenAPI specification and a language model to be set.
+
+            $ data_api.set_openapi(OpenAPI(https://api.example.com/openapi.json))
+            $ data_api.set_lm(OpenAI("gpt-3.5-turbo"))
+            $ data_api.smart_add_endpoint(prompt="List all users", alias="list_users")
+
+        A DataAPI object can also be instantiated directly from an OpenAPI specification.
+        The OpenAPI specification is parsed during instantiation and Endpoints are added to the DataAPI object.
+
+            $ data_api = DataAPI.from_openapi(openapi="https://api.example.com/openapi.json")
+            $ data_api["/users"].request()
+
+    Attributes:
+        base_url (str): Base URL for the Endpoints associated with the DataAPI collection.
+        openapi (Union[str, dict, OpenAPI], optional): OpenAPI specification for the DataAPI. Defaults to None.
+        shared_params (dict, optional): Shared parameters for the DataAPI. Defaults to None.
+        shared_headers (dict, optional): Shared headers for the DataAPI. Defaults to None.
+        cookies (dict, optional): Cookies for the DataAPI. Defaults to None.
+        auth (dict, optional): Authentication parameters for the DataAPI. Defaults to None.
+        timeout (int, optional): Timeout for the DataAPI. Defaults to None.
+        allow_redirects (bool, optional): Allow redirects flag for the DataAPI. Defaults to True.
+        stream (bool, optional): Stream flag for the DataAPI. Defaults to False.
+        verify (bool, optional): Verify flag for the DataAPI. Defaults to True.
+        cert (str, optional): Certificate for the DataAPI. Defaults to None.
+        lm (Model, optional): Language model for the DataAPI. Defaults to None.
+
+    Methods:
+        set_openapi(openapi: Union[str, dict, OpenAPI]) -> None: Set the OpenAPI specification for the DataAPI.
+        set_lm(lm: Model) -> None: Set the language model for the DataAPI.
+        set_shared_params(params: dict, propagate: bool = True) -> None: Set shared parameters for the DataAPI.
+        set_shared_headers(headers: dict, propagate: bool = True) -> None: Set shared headers for the DataAPI.
+        endpoints() -> List[Tuple[str, Endpoint]]: List all Endpoints associated with the DataAPI.
+        add_endpoint(endpoint: str, method: str, alias: Optional[str] = None, params: Optional[dict] = None, body: Optional[dict] = None, headers: Optional[dict] = None, cookies: Optional[dict] = None, auth: Optional[dict] = None, timeout: Optional[int] = None, allow_redirects: Optional[bool] = None, stream: Optional[bool] = None, verify: Optional[bool] = None, cert: Optional[str] = None, **kwargs) -> None: Add an Endpoint to the DataAPI.
+        smart_add_endpoint(prompt: str, alias: Optional[str] = None, echo: bool = False) -> None: Add an Endpoint to the DataAPI using a language model.
+        remove_endpoints(endpoints: Union[list, str], regex: bool = False) -> None: Remove the specified Endpoints from the DataAPI.
+        keep_endpoints(endpoints: Union[list, str], regex: bool = False) -> None: Keep only the specified Endpoints in the DataAPI.
+        from_openapi(openapi: Union[dict, str, OpenAPI], base_url: Optional[str] = None) -> "DataAPI": Create a DataAPI object from an OpenAPI specification.
+    """
 
     def __post_init__(self) -> None:
         if self.openapi and not isinstance(self.openapi, OpenAPI):
@@ -62,9 +112,19 @@ class DataAPI(ABCDataAPI):
         endpoint.cert = self.cert
 
     def set_openapi(self, openapi: Union[str, dict, OpenAPI]) -> None:
+        """Set the OpenAPI specification for the DataAPI.
+
+        Args:
+            openapi (Union[str, dict, OpenAPI]): OpenAPI specification for the DataAPI.
+        """
         self.openapi = OpenAPI(openapi) if not isinstance(openapi, OpenAPI) else openapi
 
     def set_lm(self, lm: Model) -> None:
+        """Set the language model for the DataAPI.
+
+        Args:
+            lm (Model): Language model for the DataAPI.
+        """
         assert isinstance(
             lm, Model
         ), "Language model must be a valid initiliazied Model object."
@@ -75,6 +135,10 @@ class DataAPI(ABCDataAPI):
         Update the shared parameters for the DataAPI.
         This method overwrites the 'shared_params' parameter defined at DataAPI instantiation
         and propagate to all attached endpoints, if 'propagate' is True.
+
+        Args:
+            params (dict): Shared parameters for the DataAPI.
+            propagate (bool, optional): Propagate shared parameters to all attached endpoints. Defaults to True.
         """
         self.shared_params = params
         if propagate:
@@ -86,6 +150,10 @@ class DataAPI(ABCDataAPI):
         Update the shared headers for the DataAPI.
         This method overwrites the 'shared_headers' parameter defined at DataAPI instantiation
         and propagate to all attached endpoints, if 'propagate' is True.
+
+        Args:
+            headers (dict): Shared headers for the DataAPI.
+            propagate (bool, optional): Propagate shared headers to all attached endpoints. Defaults to True.
         """
         self.shared_headers = headers
         if propagate:
@@ -93,6 +161,11 @@ class DataAPI(ABCDataAPI):
                 self[endpoint[0]].merge_headers(copy.deepcopy(headers))
 
     def endpoints(self) -> List[Tuple[str, Endpoint]]:
+        """List all Endpoints associated with the DataAPI.
+
+        Returns:
+            List[Tuple[str, Endpoint]]: List of all Endpoints associated with the DataAPI.
+        """
         return inspect.getmembers(self, lambda a: isinstance(a, Endpoint))
 
     def add_endpoint(
@@ -112,6 +185,23 @@ class DataAPI(ABCDataAPI):
         cert: Optional[str] = None,
         **kwargs,
     ) -> None:
+        """Add an Endpoint to the DataAPI.
+
+        Args:
+            endpoint (str): Endpoint relative URL.
+            method (str): Endpoint HTTP method.
+            alias (Optional[str], optional): Alias to access the Endpoint from the parent DataAPI object. Defaults to None.
+            params (Optional[dict], optional): Path and/or Query parameters to associate with the Endpoint. Defaults to None.
+            body (Optional[dict], optional): Body payload to associate with the Endpoint for PUT and POST methods. Defaults to None.
+            headers (Optional[dict], optional): Headers to associate with the Endpoint. Defaults to None.
+            cookies (Optional[dict], optional): Optional cookies to associate with the Endpoint. Defaults to None.
+            auth (Optional[dict], optional): Custom authentication to associate with the Endpoint. Defaults to None.
+            timeout (Optional[int], optional): Timeout parameters to associate with the Endpoint. Defaults to None.
+            allow_redirects (Optional[bool], optional): Allow redirects flag to associate with the Endpoint. Defaults to None.
+            stream (Optional[bool], optional): Stream flag to associate with the Endpoint. Defaults to None.
+            verify (Optional[bool], optional): Verify flag to associate with the Endpoint. Defaults to None.
+            cert (Optional[str], optional): Custom certificates to associate with the Endpoint. Defaults to None.
+        """
         endpoint_object = Endpoint(
             base_url=self.base_url,
             endpoint=endpoint,
@@ -149,6 +239,14 @@ class DataAPI(ABCDataAPI):
         alias: Optional[str] = None,
         echo: bool = False,
     ) -> None:
+        """Add an Endpoint to the DataAPI with a natural language prompt.
+        This method requires an OpenAPI specification and a language model to be set for the DataAPI.
+
+        Args:
+            prompt (str): Natural language prompt to determine the Endpoint relative URL, method, and parameters.
+            alias (Optional[str], optional): Alias to access the Endpoint from the parent DataAPI object. Defaults to None.
+            echo (bool, optional): Print the language model outputs during endpoint instantiation. Defaults to False.
+        """
         # TODO: Implement retries with backoff
         assert self.openapi, "An OpenAPI specification is needed for a smart_add_endpoint. Please define one with the .set_openapi() method."
         assert (
@@ -198,6 +296,10 @@ class DataAPI(ABCDataAPI):
     ) -> None:
         """
         Remove the specified endpoints. If 'regex' is True, 'endpoints' is treated as a regular expression.
+
+        Args:
+            endpoints (Union[list, str]): List of endpoints to remove.
+            regex (bool, optional): Treat 'endpoints' as a regular expression. Defaults to False.
         """
         if regex:
             endpoints = self._match_endpoints_from_regex(endpoints)
@@ -210,6 +312,10 @@ class DataAPI(ABCDataAPI):
     def keep_endpoints(self, endpoints: Union[list, str], regex: bool = False) -> None:
         """
         Keep only the specified endpoints. If 'regex' is True, 'endpoints' is treated as a regular expression.
+
+        Args:
+            endpoints (Union[list, str]): List of endpoints to keep.
+            regex (bool, optional): Treat 'endpoints' as a regular expression. Defaults to False.
         """
         if regex:
             endpoints = self._match_endpoints_from_regex(endpoints)
@@ -224,6 +330,18 @@ class DataAPI(ABCDataAPI):
     def from_openapi(
         cls, openapi: Union[dict, str, OpenAPI], base_url: Optional[str] = None
     ) -> "DataAPI":
+        """Instantiate a DataAPI object from an OpenAPI specification.
+
+        Args:
+            openapi (Union[dict, str, OpenAPI]): OpenAPI specification for the DataAPI.
+            base_url (Optional[str], optional): Base URL for the DataAPI to be instantiated. This parameter is needed to resolve conflicts in OpenAPI specifications with multiple base URLs. Defaults to None.
+
+        Raises:
+            ValueError: Raises on conflicts in OpenAPI specifications with multiple base URLs, if 'base_url' is not explicitly defined.
+
+        Returns:
+            DataAPI: A DataAPI object instantiated from the OpenAPI specification.
+        """
         if not isinstance(openapi, OpenAPI):
             openapi = OpenAPI(openapi)
         api_servers = [s.url for s in openapi.servers]
