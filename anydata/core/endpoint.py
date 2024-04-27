@@ -131,12 +131,16 @@ class Endpoint(EndpointSession):
         Extract path parameters from the endpoint and store them in self.path_params.
         To obtain path parameters values this method takes self.params as the first precedence, and self.path_params as the second.
         It will also remove path parameters from self.params if they are found in the endpoint.
+
         Example:
-            endpoint = "/users/{user_id}/posts/{post_id}"
-            endpoint.params = {"user_id": 2, "post_id": None, "format": "json"}
-            endpoint.path_params = {"user_id": 1, "post_id": 1}
-            endpoint._set_path_params()
-        Will result in:
+
+            $ endpoint = "/users/{user_id}/posts/{post_id}"
+            $ endpoint.params = {"user_id": 2, "post_id": None, "format": "json"}
+            $ endpoint.path_params = {"user_id": 1, "post_id": 1}
+            $ endpoint._set_path_params()
+
+            Will result in:
+
             endpoint.params = {"format": "json"}
             endpoint.path_params = {"user_id": 2, "post_id": 1}
         """

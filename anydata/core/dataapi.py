@@ -3,82 +3,93 @@ import json
 import copy
 import inspect
 from typing import Optional, Union, List, Tuple
-from dataclasses import dataclass
 from guidance.models import Model
+
 from ..schemas.core import ABCDataAPI
 from ..core.endpoint import Endpoint
 from ..engine.functions import dataapi_from_prompt, evaluate_unsuccessful_response
 from ..parsers.openapi import OpenAPI
 
 
-@dataclass
 class DataAPI(ABCDataAPI):
-    base_url: str
-    openapi: Optional[Union[str, dict, OpenAPI]] = None
-    shared_params: Optional[dict] = None
-    shared_headers: Optional[dict] = None
-    cookies: Optional[dict] = None
-    auth: Optional[dict] = None
-    timeout: Optional[int] = None
-    allow_redirects: Optional[bool] = True
-    stream: Optional[bool] = False
-    verify: Optional[bool] = True
-    cert: Optional[str] = None
-    lm: Optional[Model] = None
-    """DataAPI collection to manage Endpoints.
+    def __init__(
+        self,
+        base_url: str,
+        openapi: Optional[Union[str, dict, OpenAPI]] = None,
+        shared_params: Optional[dict] = None,
+        shared_headers: Optional[dict] = None,
+        cookies: Optional[dict] = None,
+        auth: Optional[dict] = None,
+        timeout: Optional[int] = None,
+        allow_redirects: Optional[bool] = True,
+        stream: Optional[bool] = False,
+        verify: Optional[bool] = True,
+        cert: Optional[str] = None,
+        lm: Optional[Model] = None,
+    ):
+        """DataAPI collection to manage Endpoints.
 
-    Examples:
-        A DataAPI object can be instantiated with a base URL and Endpoints can be added with the add_endpoint() method.
+        Examples:
+            A DataAPI object can be instantiated with a base URL and Endpoints can be added with the add_endpoint() method.
 
-            $ data_api = DataAPI(base_url="https://api.example.com")
-            $ data_api.add_endpoint(endpoint="/users", method="GET")
+                $ data_api = DataAPI(base_url="https://api.example.com")
+                $ data_api.add_endpoint(endpoint="/users", method="GET")
+                $ data_api["/users"].request()
 
-        As a DataAPI object inherits from MutableMapping, Endpoints can be accessed as dictionary keys.
+            Smart methods require an OpenAPI specification and a language model to be set.
 
-            $ data_api["/users"].request()
+                $ data_api.set_openapi(OpenAPI(https://api.example.com/openapi.json))
+                $ data_api.set_lm(OpenAI("gpt-3.5-turbo"))
+                $ data_api.smart_add_endpoint(prompt="List all users", alias="list_users")
+                $ data_api["list_users"].request()
 
-        Smart methods require an OpenAPI specification and a language model to be set.
+            A DataAPI object can also be instantiated directly from an OpenAPI specification.
+            The OpenAPI specification is parsed during instantiation and Endpoints are added to the DataAPI object.
 
-            $ data_api.set_openapi(OpenAPI(https://api.example.com/openapi.json))
-            $ data_api.set_lm(OpenAI("gpt-3.5-turbo"))
-            $ data_api.smart_add_endpoint(prompt="List all users", alias="list_users")
+                $ data_api = DataAPI.from_openapi(openapi="https://api.example.com/openapi.json")
+                $ data_api["/users"].request()
 
-        A DataAPI object can also be instantiated directly from an OpenAPI specification.
-        The OpenAPI specification is parsed during instantiation and Endpoints are added to the DataAPI object.
+        Attributes:
+            base_url (str): Base URL for the Endpoints associated with the DataAPI collection.
+            openapi (Union[str, dict, OpenAPI], optional): OpenAPI specification for the DataAPI. Defaults to None.
+            shared_params (dict, optional): Shared parameters for the DataAPI. Defaults to None.
+            shared_headers (dict, optional): Shared headers for the DataAPI. Defaults to None.
+            cookies (dict, optional): Cookies for the DataAPI. Defaults to None.
+            auth (dict, optional): Authentication parameters for the DataAPI. Defaults to None.
+            timeout (int, optional): Timeout for the DataAPI. Defaults to None.
+            allow_redirects (bool, optional): Allow redirects flag for the DataAPI. Defaults to True.
+            stream (bool, optional): Stream flag for the DataAPI. Defaults to False.
+            verify (bool, optional): Verify flag for the DataAPI. Defaults to True.
+            cert (str, optional): Certificate for the DataAPI. Defaults to None.
+            lm (Model, optional): Language model for the DataAPI. Defaults to None.
 
-            $ data_api = DataAPI.from_openapi(openapi="https://api.example.com/openapi.json")
-            $ data_api["/users"].request()
-
-    Attributes:
-        base_url (str): Base URL for the Endpoints associated with the DataAPI collection.
-        openapi (Union[str, dict, OpenAPI], optional): OpenAPI specification for the DataAPI. Defaults to None.
-        shared_params (dict, optional): Shared parameters for the DataAPI. Defaults to None.
-        shared_headers (dict, optional): Shared headers for the DataAPI. Defaults to None.
-        cookies (dict, optional): Cookies for the DataAPI. Defaults to None.
-        auth (dict, optional): Authentication parameters for the DataAPI. Defaults to None.
-        timeout (int, optional): Timeout for the DataAPI. Defaults to None.
-        allow_redirects (bool, optional): Allow redirects flag for the DataAPI. Defaults to True.
-        stream (bool, optional): Stream flag for the DataAPI. Defaults to False.
-        verify (bool, optional): Verify flag for the DataAPI. Defaults to True.
-        cert (str, optional): Certificate for the DataAPI. Defaults to None.
-        lm (Model, optional): Language model for the DataAPI. Defaults to None.
-
-    Methods:
-        set_openapi(openapi: Union[str, dict, OpenAPI]) -> None: Set the OpenAPI specification for the DataAPI.
-        set_lm(lm: Model) -> None: Set the language model for the DataAPI.
-        set_shared_params(params: dict, propagate: bool = True) -> None: Set shared parameters for the DataAPI.
-        set_shared_headers(headers: dict, propagate: bool = True) -> None: Set shared headers for the DataAPI.
-        endpoints() -> List[Tuple[str, Endpoint]]: List all Endpoints associated with the DataAPI.
-        add_endpoint(endpoint: str, method: str, alias: Optional[str] = None, params: Optional[dict] = None, body: Optional[dict] = None, headers: Optional[dict] = None, cookies: Optional[dict] = None, auth: Optional[dict] = None, timeout: Optional[int] = None, allow_redirects: Optional[bool] = None, stream: Optional[bool] = None, verify: Optional[bool] = None, cert: Optional[str] = None, **kwargs) -> None: Add an Endpoint to the DataAPI.
-        smart_add_endpoint(prompt: str, alias: Optional[str] = None, echo: bool = False) -> None: Add an Endpoint to the DataAPI using a language model.
-        remove_endpoints(endpoints: Union[list, str], regex: bool = False) -> None: Remove the specified Endpoints from the DataAPI.
-        keep_endpoints(endpoints: Union[list, str], regex: bool = False) -> None: Keep only the specified Endpoints in the DataAPI.
-        from_openapi(openapi: Union[dict, str, OpenAPI], base_url: Optional[str] = None) -> "DataAPI": Create a DataAPI object from an OpenAPI specification.
-    """
-
-    def __post_init__(self) -> None:
-        if self.openapi and not isinstance(self.openapi, OpenAPI):
-            self.openapi = OpenAPI(self.openapi)
+        Methods:
+            set_openapi(openapi: Union[str, dict, OpenAPI]) -> None: Set the OpenAPI specification for the DataAPI.
+            set_lm(lm: Model) -> None: Set the language model for the DataAPI.
+            set_shared_params(params: dict, propagate: bool = True) -> None: Set shared parameters for the DataAPI.
+            set_shared_headers(headers: dict, propagate: bool = True) -> None: Set shared headers for the DataAPI.
+            endpoints() -> List[Tuple[str, Endpoint]]: List all Endpoints associated with the DataAPI.
+            add_endpoint(endpoint: str, method: str, alias: Optional[str] = None, params: Optional[dict] = None, body: Optional[dict] = None, headers: Optional[dict] = None, cookies: Optional[dict] = None, auth: Optional[dict] = None, timeout: Optional[int] = None, allow_redirects: Optional[bool] = None, stream: Optional[bool] = None, verify: Optional[bool] = None, cert: Optional[str] = None, **kwargs) -> None: Add an Endpoint to the DataAPI.
+            smart_add_endpoint(prompt: str, alias: Optional[str] = None, echo: bool = False) -> None: Add an Endpoint to the DataAPI using a language model.
+            remove_endpoints(endpoints: Union[list, str], regex: bool = False) -> None: Remove the specified Endpoints from the DataAPI.
+            keep_endpoints(endpoints: Union[list, str], regex: bool = False) -> None: Keep only the specified Endpoints in the DataAPI.
+            from_openapi(openapi: Union[dict, str, OpenAPI], base_url: Optional[str] = None) -> "DataAPI": Create a DataAPI object from an OpenAPI specification.
+        """
+        self.base_url = base_url
+        if openapi:
+            self.openapi = (
+                OpenAPI(openapi) if not isinstance(openapi, OpenAPI) else openapi
+            )
+        self.shared_params = shared_params
+        self.shared_headers = shared_headers
+        self.cookies = cookies
+        self.auth = auth
+        self.timeout = timeout
+        self.allow_redirects = allow_redirects
+        self.stream = stream
+        self.verify = verify
+        self.cert = cert
+        self.lm = lm
 
     def __setitem__(self, key, value) -> None:
         """
