@@ -13,10 +13,9 @@ def dataframe_from_array_of_dicts(array: list) -> "pd.DataFrame":
     """
     Returns a pandas DataFrame from an array of dictionaries.
     """
-    if not is_pandas:
-        raise ImportError(
-            "Please install the 'pandas' package using `pip install pandas` to use this function."
-        )
+    assert is_pandas, ImportError(
+        "Please install the 'pandas' package using `pip install pandas` to use this function."
+    )
     try:
         return pd.DataFrame.from_dict(array, orient="columns")
     except Exception as e:

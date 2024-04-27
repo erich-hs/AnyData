@@ -1,14 +1,24 @@
+from __future__ import annotations
+
 import re
 import json
 import copy
 import inspect
 from typing import Optional, Union, List, Tuple
-from guidance.models import Model
 
 from ..schemas.core import ABCDataAPI
 from ..core.endpoint import Endpoint
-from ..engine.functions import dataapi_from_prompt, evaluate_unsuccessful_response
 from ..parsers.openapi import OpenAPI
+
+try:
+    from guidance.models import Model
+
+    is_guidance = True
+except ImportError:
+    is_guidance = False
+
+if is_guidance:
+    from ..engine.functions import dataapi_from_prompt, evaluate_unsuccessful_response
 
 
 class DataAPI(ABCDataAPI):
@@ -89,7 +99,14 @@ class DataAPI(ABCDataAPI):
         self.stream = stream
         self.verify = verify
         self.cert = cert
-        self.lm = lm
+        if lm:
+            assert is_guidance, ImportError(
+                "Please install the 'guidance' package using `pip install guidance` to use language models."
+            )
+            assert isinstance(
+                lm, Model
+            ), "Language model must be a valid initiliazied `guidance.models.Model` object."
+            self.lm = lm
 
     def __setitem__(self, key, value) -> None:
         """
@@ -136,9 +153,12 @@ class DataAPI(ABCDataAPI):
         Args:
             lm (Model): Language model for the DataAPI.
         """
+        assert is_guidance, ImportError(
+            "Please install the 'guidance' package using `pip install guidance` to use language models."
+        )
         assert isinstance(
             lm, Model
-        ), "Language model must be a valid initiliazied Model object."
+        ), "Language model must be a valid initiliazied `guidance.models.Model` object."
         self.lm = lm
 
     def set_shared_params(self, params: dict, propagate: bool = True) -> None:
@@ -259,6 +279,9 @@ class DataAPI(ABCDataAPI):
             echo (bool, optional): Print the language model outputs during endpoint instantiation. Defaults to False.
         """
         # TODO: Implement retries with backoff
+        assert is_guidance, ImportError(
+            "Please install the 'guidance' package using `pip install guidance` to use this method."
+        )
         assert self.openapi, "An OpenAPI specification is needed for a smart_add_endpoint. Please define one with the .set_openapi() method."
         assert (
             self.lm is not None

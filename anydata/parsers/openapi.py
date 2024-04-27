@@ -6,6 +6,7 @@ from json.decoder import JSONDecodeError
 from yaml.parser import ParserError
 from urllib.parse import urlparse
 from typing import List, Dict, Union, Tuple
+
 from ..schemas.openapi import Info, Server, PathItem, OPENAPI_OPERATIONS
 from ..exceptions import InvalidOpenAPIFormat
 
@@ -279,6 +280,3 @@ class OpenAPI:
                 resolve_parameter_references,
             ),
         }
-
-
-# %%
