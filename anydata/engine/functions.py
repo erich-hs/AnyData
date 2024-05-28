@@ -1,6 +1,7 @@
 from typing import Optional
 import guidance
 from guidance import gen, system, user, assistant, select
+
 from ..parsers.openapi import OpenAPI
 from ..engine.prompts.system_prompts import (
     RELATIVE_URL_FETCHER,
