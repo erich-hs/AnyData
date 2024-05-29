@@ -20,4 +20,5 @@ clean:
 	rm -rf dist
 	rm -rf anydata.egg-info
 	rm -rf htmlcov
+	rm -f coverage.xml
 	find anydata -name '__pycache__' -exec rm -rf {} +
