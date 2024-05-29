@@ -2,6 +2,9 @@
 install:
 	poetry install
 
+install-complete:
+	poetry install --extras "guidance"
+
 # Run tests with coverage report
 test:
 	poetry run pytest-cov
