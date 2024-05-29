@@ -1,5 +1,7 @@
 # AnyData
 
+![pypi](https://img.shields.io/pypi/v/anydata)
+
 Smart framework to interact with and fetch data from REST APIs.
 
 ## Installation

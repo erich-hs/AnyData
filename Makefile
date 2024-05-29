@@ -5,9 +5,13 @@ install:
 install-complete:
 	poetry install --extras "guidance"
 
-# Run tests with coverage report
+# Run tests
 test:
 	poetry run pytest --cov
+
+# Run tests with coverage report
+test-coverage:
+	poetry run pytest --cov --cov-report=xml
 
 # Clean up build artifacts and pytest cache
 clean:
