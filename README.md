@@ -17,7 +17,7 @@ pip install anydata
 
 ## DataAPI
 
-`DataAPI` is a collection of `Endpoint`s that can be instantiated from a REST API base URL or directly from the API OpenAPI documentation.
+`DataAPI` is a collection of `Endpoint`s that can be instantiated from a REST API base URL or directly from the API's [OpenAPI](https://spec.openapis.org/oas/latest.html) documentation.
 
 ### → From Base URL
 
@@ -27,12 +27,12 @@ from anydata import DataAPI
 # Instantiate a DataAPI object
 valet_api = DataAPI(base_url="https://www.bankofcanada.ca/valet")
 
-# Set parameters to be shared across endpoints in this collection
-valet_api.set_shared_params(params={"format": "json", "start_date": "2024-01-01"})
-
 # Add endpoints
 valet_api.add_endpoint("/observations/FXUSDCAD/{format}", method="GET", alias="USD_to_CAD")
 valet_api.add_endpoint("/observations/FXCADUSD/{format}", method="GET", alias="CAD_to_USD")
+
+# Set parameters to be shared across endpoints in this collection
+valet_api.set_shared_params(params={"format": "json", "start_date": "2024-01-01"})
 ```
 
 At this point the data can be fetched directly to a `DataFrame` object.
@@ -136,10 +136,10 @@ usd_to_cad.to_pandas()
 To enable **Smart Functions**, you need to perform an install that brings the necessary extra dependencies:
 
 ```zsh
-pip install 'anydata[guidance]'
+pip install --upgrade 'anydata[guidance]'
 ```
 
-You also need to set any API Key necessary to interact with remote LLMs. The following examples assume that an OpenAI API Key is set as an environment variable. You can easily do that with a .env file and Python `dotenv`:
+You also need to set any API Key necessary to interact with remote LLMs. The following examples assume that an OpenAI API Key is set as an environment variable, which can be easily done with a .env file and Python `dotenv`:
 
 ```python
 # .env file in the project directory
@@ -188,7 +188,9 @@ valet_api['CAD_to_JPY']
 Endpoint(method="get", endpoint="/observations/{seriesNames}/{format}", params={'start_date': '2020-01-01'}, path_params={'seriesNames': 'FXCADJPY', 'format': 'json'})
 ```
 
-The performance of this feature is highly dependent on the quality of the API documentation provided, and it works with any Large Language Model supported by the [guidance](https://github.com/guidance-ai/guidance) framework.
+This method efficiently passes the necessary information from the OpenAPI specification to the Large Language Model, hence its performance is highly dependent on the quality of the API documentation provided.
+
+It can be used with any Chat Model supported by the [guidance](https://github.com/guidance-ai/guidance) framework.
 
 ## Contribution
 
