@@ -4,6 +4,7 @@ install:
 
 install-complete:
 	poetry install --extras "guidance"
+	pip install pandas
 
 # Run tests with coverage report
 test:
