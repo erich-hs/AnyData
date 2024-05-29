@@ -1,9 +1,13 @@
-# AnyData
-
-![pypi](https://img.shields.io/pypi/v/anydata)
-![codecov](https://codecov.io/gh/erich-hs/AnyData/graph/badge.svg?token=ZT12OKMZLC)
-![PyPI pyversions](https://img.shields.io/pypi/pyversions/anydata.svg)
-![PyPI license](https://img.shields.io/pypi/l/anydata)
+<p align="center">
+  <img src="docs/images/AnyData_logo.png" alt="AnyData">
+</p>
+<p align="center">
+  <img src="https://github.com/erich-hs/AnyData/actions/workflows/ci.yml/badge.svg" alt="CI">
+  <img src="https://img.shields.io/pypi/v/anydata" alt="pypi">
+  <img src="https://codecov.io/gh/erich-hs/AnyData/graph/badge.svg?token=ZT12OKMZLC" alt="codecov">
+  <img src="https://img.shields.io/pypi/pyversions/anydata.svg" alt="PyPI pyversions">
+  <img src="https://img.shields.io/pypi/l/anydata" alt="PyPI license">
+</p>
 
 **AnyData** is a smart framework to interact with and fetch data from REST APIs. With **AnyData** you can define endpoint collections to reduce boilerplate code and improve code readability, while also accelerating development with [OpenAPI (Swagger) parsers](#-from-openapi-specification) and [Smart Functions](#smart-functions).
 
@@ -178,7 +182,7 @@ valet_api['CAD_to_JPY'].to_pandas()
 
 ![alt text](docs/images/df_example_02.png)
 
-The instantiated endpoint contains the parameter to fulfill the prompt.
+The instantiated endpoint contains the parameters to fulfill the prompt.
 
 ```python
 valet_api['CAD_to_JPY']
