@@ -103,7 +103,7 @@ valet_api["/observations/{seriesNames}/{format}"].to_pandas(
 
 ![alt text](docs/images/df_example_01.png)
 
-As a `requests.Session` subclass, `Endpoint`s can also be used as a context managers.
+As a `requests.Session` subclass, `Endpoint`s can also be used as context managers.
 
 ```python
 valet_api.set_shared_params(params={"format": "json"})
